@@ -242,7 +242,7 @@ function NovoAtestadoPage() {
           quantidade_sugerida: s.quantidadeSugerida ?? null,
           valor_unitario: s.valorUnitario ?? null,
           valor_total: s.valorTotal ?? null,
-          status: s.status, observacoes: s.observacoes ?? null,
+          status: s.status ?? "pendente", observacoes: s.observacoes ?? null,
         })),
       });
     },
