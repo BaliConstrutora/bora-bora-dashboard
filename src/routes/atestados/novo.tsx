@@ -154,7 +154,7 @@ function ServiceCard({ servico, onConfirm, onIgnore, onUpdate }: {
                 <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
                 <div className="text-xs">
                   <p className="font-medium">{servico.codigoSugerido} — {servico.descricaoSugerida}</p>
-                  <p className="text-muted-foreground">{servico.quantidadeSugerida.toLocaleString("pt-BR")} {servico.unidadeSugerida} · {servico.categoriaSugerida}</p>
+                  <p className="text-muted-foreground">{(servico.quantidadeSugerida ?? 0).toLocaleString("pt-BR")} {servico.unidadeSugerida} · {servico.categoriaSugerida}</p>
                 </div>
               </div>
             )}
