@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LicitacoesRouteImport } from './routes/licitacoes'
 import { Route as ConcorrenciasRouteImport } from './routes/concorrencias'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AtestadosIndexRouteImport } from './routes/atestados/index'
 
 const LicitacoesRoute = LicitacoesRouteImport.update({
   id: '/licitacoes',
@@ -28,35 +29,44 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtestadosIndexRoute = AtestadosIndexRouteImport.update({
+  id: '/atestados/',
+  path: '/atestados/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/concorrencias': typeof ConcorrenciasRoute
   '/licitacoes': typeof LicitacoesRoute
+  '/atestados/': typeof AtestadosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/concorrencias': typeof ConcorrenciasRoute
   '/licitacoes': typeof LicitacoesRoute
+  '/atestados': typeof AtestadosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/concorrencias': typeof ConcorrenciasRoute
   '/licitacoes': typeof LicitacoesRoute
+  '/atestados/': typeof AtestadosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/concorrencias' | '/licitacoes'
+  fullPaths: '/' | '/concorrencias' | '/licitacoes' | '/atestados/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/concorrencias' | '/licitacoes'
-  id: '__root__' | '/' | '/concorrencias' | '/licitacoes'
+  to: '/' | '/concorrencias' | '/licitacoes' | '/atestados'
+  id: '__root__' | '/' | '/concorrencias' | '/licitacoes' | '/atestados/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConcorrenciasRoute: typeof ConcorrenciasRoute
   LicitacoesRoute: typeof LicitacoesRoute
+  AtestadosIndexRoute: typeof AtestadosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/atestados/': {
+      id: '/atestados/'
+      path: '/atestados'
+      fullPath: '/atestados/'
+      preLoaderRoute: typeof AtestadosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConcorrenciasRoute: ConcorrenciasRoute,
   LicitacoesRoute: LicitacoesRoute,
+  AtestadosIndexRoute: AtestadosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
