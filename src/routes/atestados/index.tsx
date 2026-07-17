@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/atestados")({
+export const Route = createFileRoute("/atestados/")({
   head: () => ({
     meta: [
       { title: "Lista de Atestados — Bora Bora" },
