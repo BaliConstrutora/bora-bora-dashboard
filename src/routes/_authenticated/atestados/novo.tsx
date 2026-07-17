@@ -17,6 +17,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { mockServicosExtraidos, CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
+import { createAtestadoFull, getCurrentUserId } from "@/lib/atestados-api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/atestados/novo")({
   head: () => ({ meta: [{ title: "Cadastro de Atestado — Bora Bora" }] }),
@@ -177,6 +179,7 @@ function ServiceCard({ servico, onConfirm, onIgnore, onUpdate }: {
 
 function NovoAtestadoPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [aditivos, setAditivos] = useState<Aditivo[]>([]);
   const [aditivoSheetOpen, setAditivoSheetOpen] = useState(false);
@@ -207,7 +210,50 @@ function NovoAtestadoPage() {
   function handleConfirm(id: string) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, status: "confirmado" as const } : s)); }
   function handleIgnore(id: string) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, status: "ignorado" as const } : s)); }
   function handleUpdate(id: string, field: keyof ServicoExtraido, value: string | number) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s)); }
-  function handleSalvar() { toast.success("Atestado salvo com sucesso!"); setStep(4); }
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      const uid = await getCurrentUserId();
+      const v = form.getValues();
+      const valor = parseFloat(v.valorContrato.replace(/\./g, "").replace(",", ".")) || 0;
+      await createAtestadoFull({
+        atestado: {
+          user_id: uid, numero: v.numero, contratante: v.contratante, descricao: v.descricao,
+          valor_contrato: valor, data_inicio: v.dataInicio, data_fim: v.dataFim,
+          data_emissao: v.dataEmissao || null, resp_tecnico: v.respTecnico,
+          art_numero: v.artNumero || null, status: v.status,
+          documento_url: null, observacoes: v.observacoes || null,
+        },
+        aditivos: aditivos.map((a) => ({
+          user_id: uid, numero: a.numero, tipo: a.tipo,
+          data_assinatura: a.dataAssinatura, nova_data_fim: a.novaDataFim ?? null,
+          valor: a.valor ?? null, valor_adicional: a.valorAdicional ?? null,
+          prazo: a.prazo ?? null, escopo: a.escopo ?? null,
+          descricao: a.descricao, observacoes: a.observacoes ?? null,
+        })),
+        servicos: servicos.map((s) => ({
+          user_id: uid, planilha_item_id: s.planilhaItemId ?? null,
+          descricao_original: s.descricaoOriginal,
+          quantidade_original: s.quantidadeOriginal ?? null,
+          codigo_sugerido: s.codigoSugerido ?? null,
+          categoria_sugerida: s.categoriaSugerida ?? null,
+          descricao_sugerida: s.descricaoSugerida ?? null,
+          unidade_sugerida: s.unidadeSugerida ?? null,
+          quantidade_sugerida: s.quantidadeSugerida ?? null,
+          valor_unitario: s.valorUnitario ?? null,
+          valor_total: s.valorTotal ?? null,
+          status: s.status, observacoes: s.observacoes ?? null,
+        })),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["atestados"] });
+      toast.success("Atestado salvo com sucesso!");
+      setStep(4);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  function handleSalvar() { saveMut.mutate(); }
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) { setPdfFile(e.target.files?.[0] || null); }
 
   function handleAditivoSave(data: AditivoForm) {
@@ -332,7 +378,10 @@ function NovoAtestadoPage() {
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
-            <Button onClick={handleSalvar}><Check className="h-4 w-4 mr-2" />Salvar Atestado Completo</Button>
+            <Button onClick={handleSalvar} disabled={saveMut.isPending}>
+              {saveMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+              Salvar Atestado Completo
+            </Button>
           </div>
         </div>
       )}
