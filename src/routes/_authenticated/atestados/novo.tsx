@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { mockServicosExtraidos, CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
-import { createAtestadoFull, getCurrentUserId } from "@/lib/atestados-api";
+import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf } from "@/lib/atestados-api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/atestados/novo")({
@@ -216,13 +216,17 @@ function NovoAtestadoPage() {
       const uid = await getCurrentUserId();
       const v = form.getValues();
       const valor = parseFloat(v.valorContrato.replace(/\./g, "").replace(",", ".")) || 0;
+      let documentoPath: string | null = null;
+      if (pdfFile) {
+        documentoPath = await uploadAtestadoPdf(uid, pdfFile);
+      }
       await createAtestadoFull({
         atestado: {
           user_id: uid, numero: v.numero, contratante: v.contratante, descricao: v.descricao,
           valor_contrato: valor, data_inicio: v.dataInicio, data_fim: v.dataFim,
           data_emissao: v.dataEmissao || null, resp_tecnico: v.respTecnico,
           art_numero: v.artNumero || null, status: v.status,
-          documento_url: null, observacoes: v.observacoes || null,
+          documento_url: documentoPath, observacoes: v.observacoes || null,
         },
         aditivos: aditivos.map((a) => ({
           user_id: uid, numero: a.numero, tipo: a.tipo,

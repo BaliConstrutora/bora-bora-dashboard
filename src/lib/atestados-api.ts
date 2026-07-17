@@ -199,3 +199,28 @@ export async function getCurrentUserId(): Promise<string> {
   if (error || !data.user) throw new Error("Não autenticado");
   return data.user.id;
 }
+
+const BUCKET = "atestados-pdfs";
+
+export async function uploadAtestadoPdf(userId: string, file: File): Promise<string> {
+  if (file.type !== "application/pdf") throw new Error("Apenas arquivos PDF são aceitos.");
+  if (file.size > 20 * 1024 * 1024) throw new Error("O PDF deve ter no máximo 20 MB.");
+  const path = `${userId}/${crypto.randomUUID()}.pdf`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    contentType: "application/pdf",
+    upsert: false,
+  });
+  if (error) throw error;
+  return path;
+}
+
+export async function getAtestadoPdfSignedUrl(path: string, expiresInSeconds = 60 * 10): Promise<string> {
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresInSeconds);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function deleteAtestadoPdf(path: string): Promise<void> {
+  const { error } = await supabase.storage.from(BUCKET).remove([path]);
+  if (error) throw error;
+}
