@@ -82,7 +82,7 @@ export interface Atestado {
   valorContrato: number;
   dataInicio: string;
   dataFim: string;
-  dataEmissao: string;
+  dataEmissao?: string;
   respTecnico: string;
   artNumero?: string;
   status: AtestadoStatus;
