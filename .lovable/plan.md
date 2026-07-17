@@ -1,13 +1,13 @@
-Create `src/routes/atestados/novo.tsx` combining part 1 (imports, schemas, `StepIndicator`, `ServiceCard`) with this `NovoAtestadoPage`.
+Replace stub `src/routes/atestados/planilha.tsx` with the full page, reconstructing JSX and restoring generics.
 
 ## Steps
 
-1. Assemble the file:
-   - Part 1 imports, route config, Zod schemas
-   - Restore generics stripped by paste: `z.infer<typeof atestadoSchema>`, `z.infer<typeof aditivoSchema>`, `Record<AditivoTipo, string>`, `useState<Aditivo[]>`, etc.
-   - Reconstruct `StepIndicator` and `ServiceCard` JSX from the flattened part-1 text
-   - Append `NovoAtestadoPage` verbatim from part 2
-2. Confirm `mockServicosExtraidos`, `CATEGORIAS_PADRAO`, `UNIDADES` are exported from `@/data/mock` and `Aditivo`/`AditivoTipo`/`ServicoExtraido` from `@/types` (verify with a quick read).
-3. Confirm `Sheet`, `Form`, `Select` shadcn primitives exist; if `Sheet` is missing, add it via shadcn.
-4. Add a placeholder route file `src/routes/atestados/planilha.tsx` only if it doesn't exist, since step 4 navigates to `/atestados/planilha` and a missing route breaks typed `navigate`. Minimal stub with head + "Em breve" content.
-5. Verify with `bunx tsgo --noEmit` and check `/atestados/novo` renders without console errors.
+1. Overwrite `src/routes/atestados/planilha.tsx`:
+   - Keep imports/route config/schema as pasted
+   - Restore generics: `z.infer<typeof itemSchema>`, `useState<PlanilhaItem[]>(mockPlanilhaItens)`, `useState<PlanilhaItem | null>(null)`, `useState<string | null>(null)`, `useState<string[]>([])`, `useForm<ItemForm>`
+   - Guard `item.atestadosCount` (optional in type) with `?? 0`
+   - Reconstruct JSX layout: header (title + "Novo Item"), 3 summary cards (Total/Categorias/Vinculados), empty state, search + category filter, table grouped by category with edit/delete actions, `Sheet` form (código, unidade, categoria with "criar nova" flow, descrição, quantidade), delete `AlertDialog`
+2. Verify `mockPlanilhaItens` is exported from `@/data/mock`; if missing, add a minimal seed derived from existing mocks (only if absent).
+3. `bunx tsgo --noEmit` and load `/atestados/planilha` to confirm render.
+
+The reported runtime error "Cannot read properties of null (reading 'use')" almost certainly comes from the stub route being replaced with a fully-featured page — no separate fix needed; if it persists after this change I'll investigate.
