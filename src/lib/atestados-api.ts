@@ -104,9 +104,28 @@ export async function deleteAtestado(id: string) {
 }
 
 export interface NewAtestadoPayload {
-  atestado: Omit<AtestadoRow, "id" | "created_at" | "updated_at"> & { user_id: string };
-  aditivos: Array<Omit<AditivoRow, "id" | "atestado_id" | "created_at" | "updated_at"> & { user_id: string }>;
-  servicos: Array<Omit<ServicoRow, "id" | "atestado_id" | "created_at" | "updated_at"> & { user_id: string }>;
+  atestado: {
+    user_id: string; numero: string; contratante: string; descricao: string;
+    valor_contrato: number; data_inicio: string; data_fim: string;
+    data_emissao: string | null; resp_tecnico: string; art_numero: string | null;
+    status: AtestadoStatus; documento_url: string | null; observacoes: string | null;
+  };
+  aditivos: Array<{
+    user_id: string; numero: number; tipo: AditivoTipo;
+    data_assinatura: string; nova_data_fim: string | null;
+    valor: number | null; valor_adicional: number | null;
+    prazo: number | null; escopo: string | null; descricao: string;
+    observacoes: string | null;
+  }>;
+  servicos: Array<{
+    user_id: string; planilha_item_id: string | null;
+    descricao_original: string; quantidade_original: string | null;
+    codigo_sugerido: string | null; categoria_sugerida: string | null;
+    descricao_sugerida: string | null; unidade_sugerida: string | null;
+    quantidade_sugerida: number | null; valor_unitario: number | null;
+    valor_total: number | null; status: "pendente" | "confirmado" | "rejeitado" | "ignorado";
+    observacoes: string | null;
+  }>;
 }
 
 export async function createAtestadoFull(payload: NewAtestadoPayload): Promise<string> {
