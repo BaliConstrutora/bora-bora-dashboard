@@ -1,32 +1,23 @@
-## Plano
+Create `src/routes/atestados/novo.tsx` with the pasted content, reconstructing the malformed/truncated JSX into valid TSX.
 
-Criar o arquivo `src/routes/atestados/index.tsx` com a listagem de atestados.
+## Approach
 
-### O que será feito
+1. Wait for the remaining parts of the file (the message says "first part — more will follow"). The pasted content contains:
+   - Imports, route config, Zod schemas, type aliases, label maps ✓ (clean)
+   - `StepIndicator` component (JSX shown as flattened text — needs reconstruction)
+   - `ServiceCard` component (JSX shown as flattened text — needs reconstruction)
+   - The main `NovoAtestadoPage` component is NOT included yet
 
-1. **Criar a rota** em `src/routes/atestados/index.tsx`.
-2. **Preservar exatamente** a parte válida do código fornecido:
-   - imports;
-   - definição do `Route` (com pequeno ajuste no path, explicado abaixo);
-   - tipos e configurações (`statusConfig`, `fmtBRL`, `fmtDate`);
-   - estados e lógica de filtro, contagem e exclusão.
-3. **Reconstruir o JSX do return** que veio truncado/incompleto, montando:
-   - cards de resumo (Total, Ativos, Vencidos, Em Análise);
-   - barra de busca + filtro de status + botão "Novo Atestado";
-   - tabela com colunas: Número, Contratante, Valor do Contrato, Período, Status, Aditivos e Ações (DropdownMenu com Ver, Editar, Excluir);
-   - diálogo de confirmação de exclusão (`AlertDialog`).
-4. **Ajustes técnicos necessários para compilar**:
-   - corrigir o path da rota de `/atestados/` (com barra final) para `/atestados`, pois o arquivo `atestados/index.tsx` gera o route ID `/atestados` no TanStack Router;
-   - tipar `statusConfig` como `Record<AtestadoStatus, ...>`;
-   - tipar `deleteId` como `string | null`.
-5. **Verificar** com `bunx tsc --noEmit` para garantir que o arquivo compila.
+2. Once all parts are provided, assemble the full file and:
+   - Fix broken generics stripped by the paste (`z.infer` → `z.infer<typeof atestadoSchema>`, `Record` → `Record<AditivoTipo, string>`, etc.)
+   - Reconstruct JSX from the visual layout (step pills with connector lines; two-column card with "Extraído" vs "Sugestão IA", edit fields for pendente, confirmed summary, ignored note, action buttons)
+   - Wire `SelectTrigger`/`SelectValue`/`SelectItem` correctly
+   - Ensure imports match usage (drop unused ones after reconstruction)
 
-### Observação importante
+3. Verify:
+   - `bunx tsgo --noEmit`
+   - Navigate to `/atestados/novo` in preview and confirm render
 
-O JSX fornecido está truncado (tags incompletas, conteúdo cortado). Em vez de colar o conteúdo quebrado, vou reconstruir a estrutura visível usando os componentes `shadcn/ui` já importados e os padrões existentes do projeto.
+## Question
 
-### Resultado esperado
-
-- Rota acessível em `/atestados`;
-- Página funcional com filtros, tabela e exclusão;
-- TypeScript sem erros.
+Should I wait for the remaining parts before creating the file, or scaffold now with a placeholder `NovoAtestadoPage` and update when the rest arrives? Waiting is safer since the schemas/handlers in later parts determine the form wiring.
