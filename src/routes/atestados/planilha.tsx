@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Plus, Search, Pencil, Trash2, X, Check, Table2, Layers, FileCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -191,8 +191,8 @@ function PlanilhaPage() {
                     <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum item encontrado.</TableCell></TableRow>
                   ) : (
                     categoriesInFiltered.map((cat) => (
-                      <>
-                        <TableRow key={`cat-${cat}`} className="bg-muted/40 hover:bg-muted/40">
+                      <Fragment key={cat}>
+                        <TableRow className="bg-muted/40 hover:bg-muted/40">
                           <TableCell colSpan={7} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{cat}</TableCell>
                         </TableRow>
                         {filtered.filter((i) => i.categoria === cat).map((item) => (
@@ -215,7 +215,7 @@ function PlanilhaPage() {
                             </TableCell>
                           </TableRow>
                         ))}
-                      </>
+                      </Fragment>
                     ))
                   )}
                 </TableBody>
