@@ -13,6 +13,7 @@ import { Route as LicitacoesRouteImport } from './routes/licitacoes'
 import { Route as ConcorrenciasRouteImport } from './routes/concorrencias'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AtestadosIndexRouteImport } from './routes/atestados/index'
+import { Route as AtestadosPlanilhaRouteImport } from './routes/atestados/planilha'
 import { Route as AtestadosNovoRouteImport } from './routes/atestados/novo'
 
 const LicitacoesRoute = LicitacoesRouteImport.update({
@@ -35,6 +36,11 @@ const AtestadosIndexRoute = AtestadosIndexRouteImport.update({
   path: '/atestados/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtestadosPlanilhaRoute = AtestadosPlanilhaRouteImport.update({
+  id: '/atestados/planilha',
+  path: '/atestados/planilha',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AtestadosNovoRoute = AtestadosNovoRouteImport.update({
   id: '/atestados/novo',
   path: '/atestados/novo',
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/concorrencias': typeof ConcorrenciasRoute
   '/licitacoes': typeof LicitacoesRoute
   '/atestados/novo': typeof AtestadosNovoRoute
+  '/atestados/planilha': typeof AtestadosPlanilhaRoute
   '/atestados/': typeof AtestadosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/concorrencias': typeof ConcorrenciasRoute
   '/licitacoes': typeof LicitacoesRoute
   '/atestados/novo': typeof AtestadosNovoRoute
+  '/atestados/planilha': typeof AtestadosPlanilhaRoute
   '/atestados': typeof AtestadosIndexRoute
 }
 export interface FileRoutesById {
@@ -61,6 +69,7 @@ export interface FileRoutesById {
   '/concorrencias': typeof ConcorrenciasRoute
   '/licitacoes': typeof LicitacoesRoute
   '/atestados/novo': typeof AtestadosNovoRoute
+  '/atestados/planilha': typeof AtestadosPlanilhaRoute
   '/atestados/': typeof AtestadosIndexRoute
 }
 export interface FileRouteTypes {
@@ -70,15 +79,23 @@ export interface FileRouteTypes {
     | '/concorrencias'
     | '/licitacoes'
     | '/atestados/novo'
+    | '/atestados/planilha'
     | '/atestados/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/concorrencias' | '/licitacoes' | '/atestados/novo' | '/atestados'
+  to:
+    | '/'
+    | '/concorrencias'
+    | '/licitacoes'
+    | '/atestados/novo'
+    | '/atestados/planilha'
+    | '/atestados'
   id:
     | '__root__'
     | '/'
     | '/concorrencias'
     | '/licitacoes'
     | '/atestados/novo'
+    | '/atestados/planilha'
     | '/atestados/'
   fileRoutesById: FileRoutesById
 }
@@ -87,6 +104,7 @@ export interface RootRouteChildren {
   ConcorrenciasRoute: typeof ConcorrenciasRoute
   LicitacoesRoute: typeof LicitacoesRoute
   AtestadosNovoRoute: typeof AtestadosNovoRoute
+  AtestadosPlanilhaRoute: typeof AtestadosPlanilhaRoute
   AtestadosIndexRoute: typeof AtestadosIndexRoute
 }
 
@@ -120,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AtestadosIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/atestados/planilha': {
+      id: '/atestados/planilha'
+      path: '/atestados/planilha'
+      fullPath: '/atestados/planilha'
+      preLoaderRoute: typeof AtestadosPlanilhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/atestados/novo': {
       id: '/atestados/novo'
       path: '/atestados/novo'
@@ -135,6 +160,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConcorrenciasRoute: ConcorrenciasRoute,
   LicitacoesRoute: LicitacoesRoute,
   AtestadosNovoRoute: AtestadosNovoRoute,
+  AtestadosPlanilhaRoute: AtestadosPlanilhaRoute,
   AtestadosIndexRoute: AtestadosIndexRoute,
 }
 export const routeTree = rootRouteImport
