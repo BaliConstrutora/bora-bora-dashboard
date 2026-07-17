@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Search, CheckCircle2, AlertCircle, FileCheck, MoreHorizontal, Trash2, Clock, Loader2 } from "lucide-react";
+import { Plus, Search, CheckCircle2, AlertCircle, FileCheck, MoreHorizontal, Trash2, Clock, Loader2, FileText } from "lucide-react";
 import type { AtestadoStatus } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listAtestados, deleteAtestado } from "@/lib/atestados-api";
+import { listAtestados, deleteAtestado, getAtestadoPdfSignedUrl } from "@/lib/atestados-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -158,6 +158,20 @@ function AtestadosListPage() {
                               <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {a.documentoUrl && (
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    try {
+                                      const url = await getAtestadoPdfSignedUrl(a.documentoUrl!);
+                                      window.open(url, "_blank", "noopener");
+                                    } catch (e) {
+                                      toast.error((e as Error).message);
+                                    }
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" />Ver PDF
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(a.id)}>
                                 <Trash2 className="h-4 w-4 mr-2" />Excluir
                               </DropdownMenuItem>
