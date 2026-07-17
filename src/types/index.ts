@@ -53,7 +53,7 @@ export interface ServicoExtraido {
   valorUnitario?: number;
   valorTotal?: number;
   planilhaItemId?: string;
-  status?: "pendente" | "confirmado" | "rejeitado";
+  status?: "pendente" | "confirmado" | "rejeitado" | "ignorado";
   observacoes?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -66,9 +66,10 @@ export interface Aditivo {
   dataAssinatura: string;
   novaDataFim?: string;
   valor?: number;
+  valorAdicional?: number;
   prazo?: number;
   escopo?: string;
-  descricao?: string;
+  descricao: string;
   observacoes?: string;
   createdAt: string;
   updatedAt?: string;
