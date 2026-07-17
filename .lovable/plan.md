@@ -1,7 +1,3 @@
-Create the file `src/data/mock.ts` containing the exact constants and mock arrays provided by the user, importing types from `@/types`.
+Replace the entire contents of `src/components/app-sidebar.tsx` with the exact code block provided by the user, preserving imports, component structure, and menu items as given.
 
-Technical details:
-- File path: `src/data/mock.ts`
-- Exports: `CATEGORIAS_PADRAO`, `UNIDADES`, `mockPlanilhaItens`, `mockAtestados`, `mockServicosExtraidos`
-- Type imports: `Atestado`, `PlanilhaItem`, `ServicoExtraido` from `@/types`
-- After creation, run TypeScript typecheck to ensure the mock data conforms to the domain types.
+After writing the file, run the TypeScript typecheck (`bunx tsc --noEmit`) to confirm the sidebar still compiles against the current project types and route tree.
