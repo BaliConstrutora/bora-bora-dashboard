@@ -14,7 +14,266 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      aditivos: {
+        Row: {
+          atestado_id: string
+          created_at: string
+          data_assinatura: string
+          descricao: string
+          escopo: string | null
+          id: string
+          nova_data_fim: string | null
+          numero: number
+          observacoes: string | null
+          prazo: number | null
+          tipo: Database["public"]["Enums"]["aditivo_tipo"]
+          updated_at: string
+          user_id: string
+          valor: number | null
+          valor_adicional: number | null
+        }
+        Insert: {
+          atestado_id: string
+          created_at?: string
+          data_assinatura: string
+          descricao?: string
+          escopo?: string | null
+          id?: string
+          nova_data_fim?: string | null
+          numero: number
+          observacoes?: string | null
+          prazo?: number | null
+          tipo: Database["public"]["Enums"]["aditivo_tipo"]
+          updated_at?: string
+          user_id: string
+          valor?: number | null
+          valor_adicional?: number | null
+        }
+        Update: {
+          atestado_id?: string
+          created_at?: string
+          data_assinatura?: string
+          descricao?: string
+          escopo?: string | null
+          id?: string
+          nova_data_fim?: string | null
+          numero?: number
+          observacoes?: string | null
+          prazo?: number | null
+          tipo?: Database["public"]["Enums"]["aditivo_tipo"]
+          updated_at?: string
+          user_id?: string
+          valor?: number | null
+          valor_adicional?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aditivos_atestado_id_fkey"
+            columns: ["atestado_id"]
+            isOneToOne: false
+            referencedRelation: "atestados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atestados: {
+        Row: {
+          art_numero: string | null
+          contratante: string
+          created_at: string
+          data_emissao: string | null
+          data_fim: string
+          data_inicio: string
+          descricao: string
+          documento_url: string | null
+          id: string
+          numero: string
+          observacoes: string | null
+          resp_tecnico: string
+          status: Database["public"]["Enums"]["atestado_status"]
+          updated_at: string
+          user_id: string
+          valor_contrato: number
+        }
+        Insert: {
+          art_numero?: string | null
+          contratante: string
+          created_at?: string
+          data_emissao?: string | null
+          data_fim: string
+          data_inicio: string
+          descricao?: string
+          documento_url?: string | null
+          id?: string
+          numero: string
+          observacoes?: string | null
+          resp_tecnico?: string
+          status?: Database["public"]["Enums"]["atestado_status"]
+          updated_at?: string
+          user_id: string
+          valor_contrato?: number
+        }
+        Update: {
+          art_numero?: string | null
+          contratante?: string
+          created_at?: string
+          data_emissao?: string | null
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string
+          documento_url?: string | null
+          id?: string
+          numero?: string
+          observacoes?: string | null
+          resp_tecnico?: string
+          status?: Database["public"]["Enums"]["atestado_status"]
+          updated_at?: string
+          user_id?: string
+          valor_contrato?: number
+        }
+        Relationships: []
+      }
+      categorias_personalizadas: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      planilha_items: {
+        Row: {
+          categoria: string
+          codigo: string
+          created_at: string
+          descricao: string
+          id: string
+          observacoes: string | null
+          quantidade: number
+          unidade: string
+          updated_at: string
+          user_id: string
+          valor_total: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          categoria: string
+          codigo: string
+          created_at?: string
+          descricao: string
+          id?: string
+          observacoes?: string | null
+          quantidade?: number
+          unidade: string
+          updated_at?: string
+          user_id: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          categoria?: string
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          observacoes?: string | null
+          quantidade?: number
+          unidade?: string
+          updated_at?: string
+          user_id?: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: []
+      }
+      servicos_extraidos: {
+        Row: {
+          atestado_id: string
+          categoria_sugerida: string | null
+          codigo_sugerido: string | null
+          created_at: string
+          descricao_original: string
+          descricao_sugerida: string | null
+          id: string
+          observacoes: string | null
+          planilha_item_id: string | null
+          quantidade_original: string | null
+          quantidade_sugerida: number | null
+          status: Database["public"]["Enums"]["servico_status"]
+          unidade_sugerida: string | null
+          updated_at: string
+          user_id: string
+          valor_total: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          atestado_id: string
+          categoria_sugerida?: string | null
+          codigo_sugerido?: string | null
+          created_at?: string
+          descricao_original: string
+          descricao_sugerida?: string | null
+          id?: string
+          observacoes?: string | null
+          planilha_item_id?: string | null
+          quantidade_original?: string | null
+          quantidade_sugerida?: number | null
+          status?: Database["public"]["Enums"]["servico_status"]
+          unidade_sugerida?: string | null
+          updated_at?: string
+          user_id: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          atestado_id?: string
+          categoria_sugerida?: string | null
+          codigo_sugerido?: string | null
+          created_at?: string
+          descricao_original?: string
+          descricao_sugerida?: string | null
+          id?: string
+          observacoes?: string | null
+          planilha_item_id?: string | null
+          quantidade_original?: string | null
+          quantidade_sugerida?: number | null
+          status?: Database["public"]["Enums"]["servico_status"]
+          unidade_sugerida?: string | null
+          updated_at?: string
+          user_id?: string
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_extraidos_atestado_id_fkey"
+            columns: ["atestado_id"]
+            isOneToOne: false
+            referencedRelation: "atestados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicos_extraidos_planilha_item_id_fkey"
+            columns: ["planilha_item_id"]
+            isOneToOne: false
+            referencedRelation: "planilha_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +282,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      aditivo_tipo: "prazo" | "valor" | "escopo" | "misto"
+      atestado_status: "ativo" | "vencido" | "em_analise"
+      servico_status: "pendente" | "confirmado" | "rejeitado" | "ignorado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +411,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      aditivo_tipo: ["prazo", "valor", "escopo", "misto"],
+      atestado_status: ["ativo", "vencido", "em_analise"],
+      servico_status: ["pendente", "confirmado", "rejeitado", "ignorado"],
+    },
   },
 } as const
