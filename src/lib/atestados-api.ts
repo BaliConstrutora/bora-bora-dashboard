@@ -1,0 +1,182 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { Atestado, Aditivo, ServicoExtraido, PlanilhaItem, AtestadoStatus, AditivoTipo } from "@/types";
+
+type AtestadoRow = {
+  id: string; numero: string; contratante: string; descricao: string;
+  valor_contrato: number | string; data_inicio: string; data_fim: string;
+  data_emissao: string | null; resp_tecnico: string; art_numero: string | null;
+  status: AtestadoStatus; documento_url: string | null; observacoes: string | null;
+  created_at: string; updated_at: string;
+};
+
+type AditivoRow = {
+  id: string; atestado_id: string; numero: number; tipo: AditivoTipo;
+  data_assinatura: string; nova_data_fim: string | null;
+  valor: number | string | null; valor_adicional: number | string | null;
+  prazo: number | null; escopo: string | null; descricao: string;
+  observacoes: string | null; created_at: string; updated_at: string;
+};
+
+type ServicoRow = {
+  id: string; atestado_id: string; planilha_item_id: string | null;
+  descricao_original: string; quantidade_original: string | null;
+  codigo_sugerido: string | null; categoria_sugerida: string | null;
+  descricao_sugerida: string | null; unidade_sugerida: string | null;
+  quantidade_sugerida: number | string | null; valor_unitario: number | string | null;
+  valor_total: number | string | null; status: "pendente" | "confirmado" | "rejeitado" | "ignorado";
+  observacoes: string | null; created_at: string; updated_at: string;
+};
+
+type PlanilhaRow = {
+  id: string; codigo: string; categoria: string; descricao: string; unidade: string;
+  quantidade: number | string; valor_unitario: number | string | null;
+  valor_total: number | string | null; observacoes: string | null;
+  created_at: string; updated_at: string;
+};
+
+const num = (v: number | string | null | undefined) => (v == null ? 0 : typeof v === "string" ? Number(v) : v);
+
+function mapAditivo(r: AditivoRow): Aditivo {
+  return {
+    id: r.id, numero: r.numero, tipo: r.tipo, dataAssinatura: r.data_assinatura,
+    novaDataFim: r.nova_data_fim ?? undefined, valor: r.valor != null ? num(r.valor) : undefined,
+    valorAdicional: r.valor_adicional != null ? num(r.valor_adicional) : undefined,
+    prazo: r.prazo ?? undefined, escopo: r.escopo ?? undefined,
+    descricao: r.descricao, observacoes: r.observacoes ?? undefined,
+    createdAt: r.created_at, updatedAt: r.updated_at,
+  };
+}
+
+function mapServico(r: ServicoRow): ServicoExtraido {
+  return {
+    id: r.id, descricaoOriginal: r.descricao_original,
+    quantidadeOriginal: r.quantidade_original ?? "",
+    codigoSugerido: r.codigo_sugerido ?? undefined,
+    categoriaSugerida: r.categoria_sugerida ?? undefined,
+    descricaoSugerida: r.descricao_sugerida ?? undefined,
+    unidadeSugerida: r.unidade_sugerida ?? undefined,
+    quantidadeSugerida: r.quantidade_sugerida != null ? num(r.quantidade_sugerida) : undefined,
+    valorUnitario: r.valor_unitario != null ? num(r.valor_unitario) : undefined,
+    valorTotal: r.valor_total != null ? num(r.valor_total) : undefined,
+    planilhaItemId: r.planilha_item_id ?? undefined,
+    status: r.status, observacoes: r.observacoes ?? undefined,
+    createdAt: r.created_at, updatedAt: r.updated_at,
+  };
+}
+
+function mapAtestado(r: AtestadoRow, aditivos: Aditivo[] = [], servicos: ServicoExtraido[] = []): Atestado {
+  return {
+    id: r.id, numero: r.numero, contratante: r.contratante, descricao: r.descricao,
+    valorContrato: num(r.valor_contrato), dataInicio: r.data_inicio, dataFim: r.data_fim,
+    dataEmissao: r.data_emissao ?? undefined, respTecnico: r.resp_tecnico,
+    artNumero: r.art_numero ?? undefined, status: r.status,
+    documentoUrl: r.documento_url ?? undefined, observacoes: r.observacoes ?? undefined,
+    aditivos, servicos,
+    createdAt: r.created_at, updatedAt: r.updated_at,
+  };
+}
+
+export function mapPlanilhaItem(r: PlanilhaRow): PlanilhaItem {
+  return {
+    id: r.id, codigo: r.codigo, categoria: r.categoria, descricao: r.descricao,
+    unidade: r.unidade, quantidade: num(r.quantidade),
+    valorUnitario: r.valor_unitario != null ? num(r.valor_unitario) : undefined,
+    valorTotal: r.valor_total != null ? num(r.valor_total) : undefined,
+    observacoes: r.observacoes ?? undefined,
+    createdAt: r.created_at, updatedAt: r.updated_at,
+  };
+}
+
+export async function listAtestados(): Promise<Atestado[]> {
+  const { data, error } = await supabase
+    .from("atestados")
+    .select("*, aditivos(*)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as unknown as (AtestadoRow & { aditivos: AditivoRow[] })[]).map((r) =>
+    mapAtestado(r, (r.aditivos ?? []).map(mapAditivo)),
+  );
+}
+
+export async function deleteAtestado(id: string) {
+  const { error } = await supabase.from("atestados").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export interface NewAtestadoPayload {
+  atestado: Omit<AtestadoRow, "id" | "created_at" | "updated_at"> & { user_id: string };
+  aditivos: Array<Omit<AditivoRow, "id" | "atestado_id" | "created_at" | "updated_at"> & { user_id: string }>;
+  servicos: Array<Omit<ServicoRow, "id" | "atestado_id" | "created_at" | "updated_at"> & { user_id: string }>;
+}
+
+export async function createAtestadoFull(payload: NewAtestadoPayload): Promise<string> {
+  const { data: at, error } = await supabase
+    .from("atestados").insert(payload.atestado).select("id").single();
+  if (error) throw error;
+  const atestadoId = (at as { id: string }).id;
+  if (payload.aditivos.length) {
+    const { error: e2 } = await supabase.from("aditivos").insert(
+      payload.aditivos.map((a) => ({ ...a, atestado_id: atestadoId })),
+    );
+    if (e2) throw e2;
+  }
+  if (payload.servicos.length) {
+    const { error: e3 } = await supabase.from("servicos_extraidos").insert(
+      payload.servicos.map((s) => ({ ...s, atestado_id: atestadoId })),
+    );
+    if (e3) throw e3;
+  }
+  return atestadoId;
+}
+
+export async function listPlanilhaItems(): Promise<PlanilhaItem[]> {
+  const { data, error } = await supabase
+    .from("planilha_items").select("*").order("categoria").order("codigo");
+  if (error) throw error;
+  return (data as unknown as PlanilhaRow[]).map(mapPlanilhaItem);
+}
+
+export async function upsertPlanilhaItem(userId: string, item: Partial<PlanilhaItem> & { id?: string }): Promise<PlanilhaItem> {
+  const row = {
+    user_id: userId,
+    codigo: item.codigo!, categoria: item.categoria!, descricao: item.descricao!,
+    unidade: item.unidade!, quantidade: item.quantidade ?? 0,
+    valor_unitario: item.valorUnitario ?? null,
+    valor_total: item.valorTotal ?? null,
+    observacoes: item.observacoes ?? null,
+  };
+  if (item.id) {
+    const { data, error } = await supabase.from("planilha_items").update(row).eq("id", item.id).select("*").single();
+    if (error) throw error;
+    return mapPlanilhaItem(data as unknown as PlanilhaRow);
+  }
+  const { data, error } = await supabase.from("planilha_items").insert(row).select("*").single();
+  if (error) throw error;
+  return mapPlanilhaItem(data as unknown as PlanilhaRow);
+}
+
+export async function deletePlanilhaItem(id: string) {
+  const { error } = await supabase.from("planilha_items").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function listCategoriasPersonalizadas(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("categorias_personalizadas").select("nome").order("nome");
+  if (error) throw error;
+  return (data as { nome: string }[]).map((c) => c.nome);
+}
+
+export async function createCategoriaPersonalizada(userId: string, nome: string) {
+  const { error } = await supabase
+    .from("categorias_personalizadas")
+    .insert({ user_id: userId, nome })
+    .select("id");
+  if (error && !`${error.message}`.includes("duplicate")) throw error;
+}
+
+export async function getCurrentUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new Error("Não autenticado");
+  return data.user.id;
+}
