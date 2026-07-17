@@ -258,7 +258,31 @@ function NovoAtestadoPage() {
     onError: (e: Error) => toast.error(e.message),
   });
   function handleSalvar() { saveMut.mutate(); }
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) { setPdfFile(e.target.files?.[0] || null); }
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) { setPdfFile(null); return; }
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      toast.error("Arquivo inválido", { description: "Envie um documento no formato PDF." });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setPdfFile(null);
+      return;
+    }
+    const MAX_BYTES = 20 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      toast.error("Arquivo muito grande", { description: `O PDF deve ter no máximo 20 MB (atual: ${(file.size / 1024 / 1024).toFixed(1)} MB).` });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setPdfFile(null);
+      return;
+    }
+    if (file.size === 0) {
+      toast.error("Arquivo vazio", { description: "O PDF selecionado está vazio." });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setPdfFile(null);
+      return;
+    }
+    setPdfFile(file);
+  }
 
   function handleAditivoSave(data: AditivoForm) {
     const newAditivo: Aditivo = {
