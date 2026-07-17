@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/concorrencias")({
+export const Route = createFileRoute("/_authenticated/concorrencias")({
   head: () => ({
     meta: [
       { title: "Concorrências Privadas — Bora Bora" },

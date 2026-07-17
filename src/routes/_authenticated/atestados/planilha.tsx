@@ -15,10 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { mockPlanilhaItens, CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
+import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { PlanilhaItem } from "@/types";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { listPlanilhaItems, upsertPlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId } from "@/lib/atestados-api";
 
-export const Route = createFileRoute("/atestados/planilha")({
+export const Route = createFileRoute("/_authenticated/atestados/planilha")({
   head: () => ({ meta: [{ title: "Planilha de Quantidades — Bora Bora" }] }),
   component: PlanilhaPage,
 });
@@ -34,15 +36,30 @@ const itemSchema = z.object({
 type ItemForm = z.infer<typeof itemSchema>;
 
 function PlanilhaPage() {
-  const [itens, setItens] = useState<PlanilhaItem[]>(mockPlanilhaItens);
+  const queryClient = useQueryClient();
+  const { data: itens = [] } = useQuery({ queryKey: ["planilha"], queryFn: listPlanilhaItems });
+  const { data: categoriasCustom = [] } = useQuery({ queryKey: ["categorias-custom"], queryFn: listCategoriasPersonalizadas });
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState<string>("todas");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PlanilhaItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [categoriasCustom, setCategoriasCustom] = useState<string[]>([]);
   const [criandoCategoria, setCriandoCategoria] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState("");
+
+  const upsertMut = useMutation({
+    mutationFn: async (item: Partial<PlanilhaItem> & { id?: string }) => {
+      const uid = await getCurrentUserId();
+      return upsertPlanilhaItem(uid, item);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["planilha"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const deleteMut = useMutation({
+    mutationFn: deletePlanilhaItem,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["planilha"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const todasCategorias = [
     ...CATEGORIAS_PADRAO,
@@ -84,30 +101,37 @@ function PlanilhaPage() {
   }
 
   function handleSave(data: ItemForm) {
-    const now = new Date().toISOString();
-    if (editingItem) {
-      setItens((prev) => prev.map((i) => i.id === editingItem.id ? { ...i, ...data, updatedAt: now } : i));
-      toast.success("Item atualizado com sucesso.");
-    } else {
-      setItens((prev) => [...prev, { id: crypto.randomUUID(), ...data, atestadosCount: 0, createdAt: now, updatedAt: now }]);
-      toast.success("Item criado na Planilha.");
-    }
-    setSheetOpen(false);
-    form.reset();
+    const payload: Partial<PlanilhaItem> & { id?: string } = {
+      id: editingItem?.id,
+      codigo: data.codigo, categoria: data.categoria, descricao: data.descricao,
+      quantidade: data.quantidade, unidade: data.unidade,
+    };
+    upsertMut.mutate(payload, {
+      onSuccess: () => {
+        toast.success(editingItem ? "Item atualizado com sucesso." : "Item criado na Planilha.");
+        setSheetOpen(false);
+        form.reset();
+      },
+    });
   }
 
   function handleDelete() {
     if (!deleteId) return;
-    setItens((prev) => prev.filter((i) => i.id !== deleteId));
+    deleteMut.mutate(deleteId, { onSuccess: () => toast.success("Item excluído.") });
     setDeleteId(null);
-    toast.success("Item excluído.");
   }
 
-  function handleCriarCategoria() {
+  async function handleCriarCategoria() {
     const cat = novaCategoria.trim();
     if (!cat) return;
     if (!categoriasCustom.includes(cat) && !CATEGORIAS_PADRAO.includes(cat)) {
-      setCategoriasCustom((prev) => [...prev, cat]);
+      try {
+        const uid = await getCurrentUserId();
+        await createCategoriaPersonalizada(uid, cat);
+        queryClient.invalidateQueries({ queryKey: ["categorias-custom"] });
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
     }
     form.setValue("categoria", cat);
     setCriandoCategoria(false);
