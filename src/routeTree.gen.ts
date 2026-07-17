@@ -9,159 +9,163 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LicitacoesRouteImport } from './routes/licitacoes'
-import { Route as ConcorrenciasRouteImport } from './routes/concorrencias'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AtestadosIndexRouteImport } from './routes/atestados/index'
-import { Route as AtestadosPlanilhaRouteImport } from './routes/atestados/planilha'
-import { Route as AtestadosNovoRouteImport } from './routes/atestados/novo'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedLicitacoesRouteImport } from './routes/_authenticated/licitacoes'
+import { Route as AuthenticatedConcorrenciasRouteImport } from './routes/_authenticated/concorrencias'
+import { Route as AuthenticatedAtestadosIndexRouteImport } from './routes/_authenticated/atestados/index'
+import { Route as AuthenticatedAtestadosPlanilhaRouteImport } from './routes/_authenticated/atestados/planilha'
+import { Route as AuthenticatedAtestadosNovoRouteImport } from './routes/_authenticated/atestados/novo'
 
-const LicitacoesRoute = LicitacoesRouteImport.update({
-  id: '/licitacoes',
-  path: '/licitacoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConcorrenciasRoute = ConcorrenciasRouteImport.update({
-  id: '/concorrencias',
-  path: '/concorrencias',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/_authenticated/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AtestadosIndexRoute = AtestadosIndexRouteImport.update({
-  id: '/atestados/',
-  path: '/atestados/',
+const AuthenticatedLicitacoesRoute = AuthenticatedLicitacoesRouteImport.update({
+  id: '/_authenticated/licitacoes',
+  path: '/licitacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AtestadosPlanilhaRoute = AtestadosPlanilhaRouteImport.update({
-  id: '/atestados/planilha',
-  path: '/atestados/planilha',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AtestadosNovoRoute = AtestadosNovoRouteImport.update({
-  id: '/atestados/novo',
-  path: '/atestados/novo',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedConcorrenciasRoute =
+  AuthenticatedConcorrenciasRouteImport.update({
+    id: '/_authenticated/concorrencias',
+    path: '/concorrencias',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedAtestadosIndexRoute =
+  AuthenticatedAtestadosIndexRouteImport.update({
+    id: '/_authenticated/atestados/',
+    path: '/atestados/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedAtestadosPlanilhaRoute =
+  AuthenticatedAtestadosPlanilhaRouteImport.update({
+    id: '/_authenticated/atestados/planilha',
+    path: '/atestados/planilha',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedAtestadosNovoRoute =
+  AuthenticatedAtestadosNovoRouteImport.update({
+    id: '/_authenticated/atestados/novo',
+    path: '/atestados/novo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/concorrencias': typeof ConcorrenciasRoute
-  '/licitacoes': typeof LicitacoesRoute
-  '/atestados/novo': typeof AtestadosNovoRoute
-  '/atestados/planilha': typeof AtestadosPlanilhaRoute
-  '/atestados/': typeof AtestadosIndexRoute
+  '/concorrencias': typeof AuthenticatedConcorrenciasRoute
+  '/licitacoes': typeof AuthenticatedLicitacoesRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/atestados/novo': typeof AuthenticatedAtestadosNovoRoute
+  '/atestados/planilha': typeof AuthenticatedAtestadosPlanilhaRoute
+  '/atestados/': typeof AuthenticatedAtestadosIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/concorrencias': typeof ConcorrenciasRoute
-  '/licitacoes': typeof LicitacoesRoute
-  '/atestados/novo': typeof AtestadosNovoRoute
-  '/atestados/planilha': typeof AtestadosPlanilhaRoute
-  '/atestados': typeof AtestadosIndexRoute
+  '/concorrencias': typeof AuthenticatedConcorrenciasRoute
+  '/licitacoes': typeof AuthenticatedLicitacoesRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/atestados/novo': typeof AuthenticatedAtestadosNovoRoute
+  '/atestados/planilha': typeof AuthenticatedAtestadosPlanilhaRoute
+  '/atestados': typeof AuthenticatedAtestadosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/concorrencias': typeof ConcorrenciasRoute
-  '/licitacoes': typeof LicitacoesRoute
-  '/atestados/novo': typeof AtestadosNovoRoute
-  '/atestados/planilha': typeof AtestadosPlanilhaRoute
-  '/atestados/': typeof AtestadosIndexRoute
+  '/_authenticated/concorrencias': typeof AuthenticatedConcorrenciasRoute
+  '/_authenticated/licitacoes': typeof AuthenticatedLicitacoesRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/atestados/novo': typeof AuthenticatedAtestadosNovoRoute
+  '/_authenticated/atestados/planilha': typeof AuthenticatedAtestadosPlanilhaRoute
+  '/_authenticated/atestados/': typeof AuthenticatedAtestadosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/concorrencias'
     | '/licitacoes'
+    | '/'
     | '/atestados/novo'
     | '/atestados/planilha'
     | '/atestados/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/concorrencias'
     | '/licitacoes'
+    | '/'
     | '/atestados/novo'
     | '/atestados/planilha'
     | '/atestados'
   id:
     | '__root__'
-    | '/'
-    | '/concorrencias'
-    | '/licitacoes'
-    | '/atestados/novo'
-    | '/atestados/planilha'
-    | '/atestados/'
+    | '/_authenticated/concorrencias'
+    | '/_authenticated/licitacoes'
+    | '/_authenticated/'
+    | '/_authenticated/atestados/novo'
+    | '/_authenticated/atestados/planilha'
+    | '/_authenticated/atestados/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ConcorrenciasRoute: typeof ConcorrenciasRoute
-  LicitacoesRoute: typeof LicitacoesRoute
-  AtestadosNovoRoute: typeof AtestadosNovoRoute
-  AtestadosPlanilhaRoute: typeof AtestadosPlanilhaRoute
-  AtestadosIndexRoute: typeof AtestadosIndexRoute
+  AuthenticatedConcorrenciasRoute: typeof AuthenticatedConcorrenciasRoute
+  AuthenticatedLicitacoesRoute: typeof AuthenticatedLicitacoesRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAtestadosNovoRoute: typeof AuthenticatedAtestadosNovoRoute
+  AuthenticatedAtestadosPlanilhaRoute: typeof AuthenticatedAtestadosPlanilhaRoute
+  AuthenticatedAtestadosIndexRoute: typeof AuthenticatedAtestadosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/licitacoes': {
-      id: '/licitacoes'
-      path: '/licitacoes'
-      fullPath: '/licitacoes'
-      preLoaderRoute: typeof LicitacoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/concorrencias': {
-      id: '/concorrencias'
-      path: '/concorrencias'
-      fullPath: '/concorrencias'
-      preLoaderRoute: typeof ConcorrenciasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/atestados/': {
-      id: '/atestados/'
+    '/_authenticated/licitacoes': {
+      id: '/_authenticated/licitacoes'
+      path: '/licitacoes'
+      fullPath: '/licitacoes'
+      preLoaderRoute: typeof AuthenticatedLicitacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/concorrencias': {
+      id: '/_authenticated/concorrencias'
+      path: '/concorrencias'
+      fullPath: '/concorrencias'
+      preLoaderRoute: typeof AuthenticatedConcorrenciasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/atestados/': {
+      id: '/_authenticated/atestados/'
       path: '/atestados'
       fullPath: '/atestados/'
-      preLoaderRoute: typeof AtestadosIndexRouteImport
+      preLoaderRoute: typeof AuthenticatedAtestadosIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/atestados/planilha': {
-      id: '/atestados/planilha'
+    '/_authenticated/atestados/planilha': {
+      id: '/_authenticated/atestados/planilha'
       path: '/atestados/planilha'
       fullPath: '/atestados/planilha'
-      preLoaderRoute: typeof AtestadosPlanilhaRouteImport
+      preLoaderRoute: typeof AuthenticatedAtestadosPlanilhaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/atestados/novo': {
-      id: '/atestados/novo'
+    '/_authenticated/atestados/novo': {
+      id: '/_authenticated/atestados/novo'
       path: '/atestados/novo'
       fullPath: '/atestados/novo'
-      preLoaderRoute: typeof AtestadosNovoRouteImport
+      preLoaderRoute: typeof AuthenticatedAtestadosNovoRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  ConcorrenciasRoute: ConcorrenciasRoute,
-  LicitacoesRoute: LicitacoesRoute,
-  AtestadosNovoRoute: AtestadosNovoRoute,
-  AtestadosPlanilhaRoute: AtestadosPlanilhaRoute,
-  AtestadosIndexRoute: AtestadosIndexRoute,
+  AuthenticatedConcorrenciasRoute: AuthenticatedConcorrenciasRoute,
+  AuthenticatedLicitacoesRoute: AuthenticatedLicitacoesRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAtestadosNovoRoute: AuthenticatedAtestadosNovoRoute,
+  AuthenticatedAtestadosPlanilhaRoute: AuthenticatedAtestadosPlanilhaRoute,
+  AuthenticatedAtestadosIndexRoute: AuthenticatedAtestadosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

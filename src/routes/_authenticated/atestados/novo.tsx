@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { mockServicosExtraidos, CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
 
-export const Route = createFileRoute("/atestados/novo")({
+export const Route = createFileRoute("/_authenticated/atestados/novo")({
   head: () => ({ meta: [{ title: "Cadastro de Atestado — Bora Bora" }] }),
   component: NovoAtestadoPage,
 });

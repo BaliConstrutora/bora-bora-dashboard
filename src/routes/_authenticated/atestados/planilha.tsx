@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { mockPlanilhaItens, CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { PlanilhaItem } from "@/types";
 
-export const Route = createFileRoute("/atestados/planilha")({
+export const Route = createFileRoute("/_authenticated/atestados/planilha")({
   head: () => ({ meta: [{ title: "Planilha de Quantidades — Bora Bora" }] }),
   component: PlanilhaPage,
 });
