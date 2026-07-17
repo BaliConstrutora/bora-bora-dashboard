@@ -28,11 +28,14 @@ export type ConcorrenciaStatus =
 
 export interface PlanilhaItem {
   id: string;
+  codigo: string;
+  categoria: string;
   descricao: string;
   unidade: string;
   quantidade: number;
-  valorUnitario: number;
-  valorTotal: number;
+  valorUnitario?: number;
+  valorTotal?: number;
+  atestadosCount?: number;
   observacoes?: string;
   createdAt: string;
   updatedAt: string;
@@ -40,38 +43,52 @@ export interface PlanilhaItem {
 
 export interface ServicoExtraido {
   id: string;
-  descricao: string;
-  unidade: string;
-  quantidade: number;
+  descricaoOriginal: string;
+  quantidadeOriginal: string;
+  codigoSugerido?: string;
+  categoriaSugerida?: string;
+  descricaoSugerida?: string;
+  unidadeSugerida?: string;
+  quantidadeSugerida?: number;
   valorUnitario?: number;
   valorTotal?: number;
+  planilhaItemId?: string;
+  status?: "pendente" | "confirmado" | "rejeitado";
   observacoes?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Aditivo {
   id: string;
-  numero: string;
-  contratoId: string;
+  numero: number;
   tipo: AditivoTipo;
   dataAssinatura: string;
+  novaDataFim?: string;
   valor?: number;
   prazo?: number;
   escopo?: string;
+  descricao?: string;
   observacoes?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface Atestado {
   id: string;
   numero: string;
-  contratoId: string;
-  periodoInicio: string;
-  periodoFim: string;
+  contratante: string;
+  descricao: string;
+  valorContrato: number;
+  dataInicio: string;
+  dataFim: string;
+  dataEmissao?: string;
+  respTecnico: string;
+  artNumero?: string;
   status: AtestadoStatus;
-  responsavel: string;
+  documentoUrl?: string;
+  aditivos: Aditivo[];
+  servicos: ServicoExtraido[];
   observacoes?: string;
   createdAt: string;
   updatedAt: string;
