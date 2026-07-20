@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Search, CheckCircle2, FileCheck, MoreHorizontal, Trash2, Clock, Loader2, FileText } from "lucide-react";
+import { Plus, Search, FileCheck, MoreHorizontal, Trash2, Loader2, FileText } from "lucide-react";
 import type { AtestadoStatus } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAtestados, deleteAtestado } from "@/lib/atestados-api";
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/atestados/")({
 
 const statusConfig: Record<AtestadoStatus, { label: string; variant: "default" | "destructive" | "secondary"; className?: string }> = {
   total: { label: "Total", variant: "default", className: "bg-green-600 hover:bg-green-700" },
-  parcial: { label: "Parcial", variant: "secondary" },
+  parcial: { label: "Parcial", variant: "default", className: "bg-blue-600 hover:bg-blue-700" },
 };
 
 function fmtBRL(v: number) {
@@ -59,7 +59,10 @@ function AtestadosListPage() {
 
   const filtered = atestados.filter((a) => {
     const s = search.toLowerCase();
-    const matchSearch = !search || a.numero.toLowerCase().includes(s) || a.contratante.toLowerCase().includes(s);
+    const matchSearch =
+      !search ||
+      (a.numeroCat ?? a.numero).toLowerCase().includes(s) ||
+      a.contratante.toLowerCase().includes(s);
     const matchStatus = statusFilter === "todos" || a.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -80,18 +83,18 @@ function AtestadosListPage() {
       toast.info("Este atestado não possui PDF anexado.");
       return;
     }
-    setPdfAtestado({ id: a.id, numero: a.numero, path: a.documentoUrl });
+    setPdfAtestado({ id: a.id, numero: (a as { numeroCat?: string | null }).numeroCat ?? a.numero, path: a.documentoUrl });
   }
 
   const statItems = [
-    { label: "Total", value: total, icon: FileCheck, color: "text-primary" },
-    { label: "Totais", value: totais, icon: CheckCircle2, color: "text-green-600" },
-    { label: "Parciais", value: parciais, icon: Clock, color: "text-muted-foreground" },
+    { label: "Total de Atestados", value: total, color: "text-primary" },
+    { label: "Atestados Totais", value: totais, color: "text-green-600" },
+    { label: "Atestados Parciais", value: parciais, color: "text-blue-600" },
   ];
 
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {statItems.map((it) => (
           <Card key={it.label}>
             <CardContent className="flex items-center justify-between p-6">
@@ -99,7 +102,7 @@ function AtestadosListPage() {
                 <p className="text-sm font-medium text-muted-foreground">{it.label}</p>
                 <p className="text-3xl font-bold mt-1">{it.value}</p>
               </div>
-              <it.icon className={`h-8 w-8 ${it.color}`} />
+              <FileCheck className={`h-8 w-8 ${it.color}`} />
             </CardContent>
           </Card>
         ))}
@@ -132,7 +135,7 @@ function AtestadosListPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-20">Seq.</TableHead>
-                  <TableHead>Número</TableHead>
+                  <TableHead>Nº CAT (CREA)</TableHead>
                   <TableHead>Contratante</TableHead>
                   <TableHead>Valor do Contrato</TableHead>
                   <TableHead>Período</TableHead>
@@ -151,6 +154,7 @@ function AtestadosListPage() {
                 ) : (
                   filtered.map((a, index) => {
                     const sc = statusConfig[a.status];
+                    const displayNumero = a.numeroCat ?? a.numero;
                     return (
                       <TableRow key={a.id}>
                         <TableCell>
@@ -162,7 +166,7 @@ function AtestadosListPage() {
                             params={{ atestadoId: a.id }}
                             className="text-primary font-medium hover:underline cursor-pointer"
                           >
-                            {a.numero}
+                            {displayNumero}
                           </Link>
                         </TableCell>
                         <TableCell>{a.contratante}</TableCell>
@@ -203,7 +207,7 @@ function AtestadosListPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Atestado</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o atestado {toDelete?.numero}? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o atestado {toDelete?.numeroCat ?? toDelete?.numero}? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
