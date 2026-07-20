@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Upload, X, Check, Loader2, Trash2, CheckCircle2, FileText } from "lucide-react";
+import { Plus, Upload, X, Check, Loader2, Trash2, CheckCircle2, FileText, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { mockServicosExtraidos, CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
+import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
-import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf } from "@/lib/atestados-api";
+import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems } from "@/lib/atestados-api";
+import { extractAtestadoFromPdf } from "@/lib/atestados-ai.functions";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/atestados/novo")({
@@ -209,8 +211,11 @@ function NovoAtestadoPage() {
   const [aditivos, setAditivos] = useState<Aditivo[]>([]);
   const [aditivoSheetOpen, setAditivoSheetOpen] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfPath, setPdfPath] = useState<string | null>(null);
   const [servicos, setServicos] = useState<ServicoExtraido[]>([]);
+  const [progress, setProgress] = useState<{ upload: "done" | "active" | "pending"; extract: "done" | "active" | "pending"; identify: "done" | "active" | "pending"; correlate: "done" | "active" | "pending" }>({ upload: "pending", extract: "pending", identify: "pending", correlate: "pending" });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const extractFn = useServerFn(extractAtestadoFromPdf);
 
   const form = useForm<AtestadoForm>({
     resolver: zodResolver(atestadoSchema),
@@ -223,16 +228,84 @@ function NovoAtestadoPage() {
     defaultValues: { tipo: "prazo", dataAssinatura: "", descricao: "" },
   });
 
-  useEffect(() => {
-    if (step !== 2) return;
-    const timer = setTimeout(() => {
-      setServicos(mockServicosExtraidos.map((s) => ({ ...s, planilhaItemId: undefined, status: "pendente" as const })));
-      setStep(3);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, [step]);
+  async function runExtraction() {
+    if (!pdfFile) {
+      toast.error("Envie o PDF do atestado antes de processar.");
+      return;
+    }
+    setStep(2);
+    setProgress({ upload: "active", extract: "pending", identify: "pending", correlate: "pending" });
+    try {
+      let path = pdfPath;
+      if (!path) {
+        const uid = await getCurrentUserId();
+        path = await uploadAtestadoPdf(uid, pdfFile);
+        setPdfPath(path);
+      }
+      setProgress((p) => ({ ...p, upload: "done", extract: "active" }));
 
-  function handleProcessar() { form.handleSubmit(() => { setStep(2); })(); }
+      const result = await extractFn({ data: { pdfPath: path } });
+      if (!result.ok) throw new Error(result.error);
+      const ext = result.data;
+      setProgress((p) => ({ ...p, extract: "done", identify: "active" }));
+
+      const parseValor = (s?: string | null) => {
+        if (!s) return "";
+        return s.replace(/\./g, "").replace(",", ".");
+      };
+      const cur = form.getValues();
+      form.reset({
+        ...cur,
+        numero: cur.numero || (ext.numero_cat ?? ""),
+        numeroCat: ext.numero_cat ?? cur.numeroCat ?? "",
+        contratante: ext.contratante ?? cur.contratante,
+        cnpjContratante: ext.cnpj_contratante ? formatCnpj(ext.cnpj_contratante) : cur.cnpjContratante ?? "",
+        tipoContratante: ext.tipo_contratante ?? cur.tipoContratante,
+        numeroContrato: ext.numero_contrato ?? cur.numeroContrato ?? "",
+        numeroPregao: ext.numero_pregao ?? cur.numeroPregao ?? "",
+        localExecucao: ext.local_execucao ?? cur.localExecucao ?? "",
+        finalidade: ext.finalidade ?? cur.finalidade,
+        valorContrato: ext.valor_contrato ? parseValor(ext.valor_contrato) : cur.valorContrato,
+        dataInicio: ext.data_inicio ?? cur.dataInicio,
+        dataFim: ext.data_fim ?? cur.dataFim,
+        respTecnico: ext.resp_tecnico ?? cur.respTecnico,
+        registroCreaRt: ext.registro_crea_rt ?? cur.registroCreaRt ?? "",
+        artNumero: ext.art_numero ?? cur.artNumero ?? "",
+        descricao: ext.descricao ?? cur.descricao,
+      });
+      setProgress((p) => ({ ...p, identify: "done", correlate: "active" }));
+
+      const planilha = await listPlanilhaItems().catch(() => []);
+      const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const svcs: ServicoExtraido[] = (ext.servicos ?? []).map((s, i) => {
+        const codigo = s.codigo_sugerido ?? undefined;
+        const desc = s.descricao_sugerida ?? undefined;
+        const match = planilha.find((p) => (codigo && p.codigo === codigo) || (desc && norm(p.descricao) === norm(desc)));
+        return {
+          id: crypto.randomUUID(),
+          descricaoOriginal: desc ?? `Serviço ${i + 1}`,
+          quantidadeOriginal: s.quantidade_sugerida != null ? `${s.quantidade_sugerida} ${s.unidade_sugerida ?? ""}`.trim() : "",
+          codigoSugerido: codigo,
+          descricaoSugerida: desc,
+          unidadeSugerida: s.unidade_sugerida ?? undefined,
+          quantidadeSugerida: s.quantidade_sugerida ?? undefined,
+          categoriaSugerida: s.categoria_sugerida ?? undefined,
+          planilhaItemId: match?.id,
+          status: "pendente" as const,
+        };
+      });
+      setServicos(svcs);
+      setProgress((p) => ({ ...p, correlate: "done" }));
+      toast.success("Dados extraídos com sucesso pelo IA!");
+      setStep(3);
+    } catch (err) {
+      console.error(err);
+      toast.error("Não foi possível extrair os dados automaticamente. Preencha manualmente.");
+      setStep(1);
+    }
+  }
+
+  function handleProcessar() { void runExtraction(); }
   function handleConfirm(id: string) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, status: "confirmado" as const } : s)); }
   function handleIgnore(id: string) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, status: "ignorado" as const } : s)); }
   function handleUpdate(id: string, field: keyof ServicoExtraido, value: string | number) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s)); }
@@ -242,9 +315,10 @@ function NovoAtestadoPage() {
       const uid = await getCurrentUserId();
       const v = form.getValues();
       const valor = parseFloat(v.valorContrato.replace(/\./g, "").replace(",", ".")) || 0;
-      let documentoPath: string | null = null;
-      if (pdfFile) {
+      let documentoPath: string | null = pdfPath;
+      if (!documentoPath && pdfFile) {
         documentoPath = await uploadAtestadoPdf(uid, pdfFile);
+        setPdfPath(documentoPath);
       }
       await createAtestadoFull({
         atestado: {
@@ -428,12 +502,17 @@ function NovoAtestadoPage() {
       {step === 2 && (
         <div className="flex flex-col items-center justify-center min-h-[420px] space-y-4 text-center">
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-          <div><h2 className="text-lg font-semibold">Analisando o documento...</h2><p className="text-sm text-muted-foreground mt-1">A IA está lendo o PDF e identificando os serviços executados</p></div>
+          <div><h2 className="text-lg font-semibold">Analisando o documento...</h2><p className="text-sm text-muted-foreground mt-1">A IA está lendo o PDF e extraindo os dados...</p></div>
           <div className="w-full max-w-sm space-y-2 mt-4">
-            {[{ label: "Lendo o PDF...", done: true },{ label: "Extraindo lista de serviços...", done: false, active: true },{ label: "Correlacionando com a Planilha de Quantidades...", done: false, active: false }].map((item, i) => (
+            {[
+              { label: "Lendo o PDF...", state: progress.upload },
+              { label: "Extraindo dados com IA...", state: progress.extract },
+              { label: "Identificando serviços executados...", state: progress.identify },
+              { label: "Correlacionando com a Planilha de Quantidades...", state: progress.correlate },
+            ].map((item, i) => (
               <div key={i} className="flex items-center gap-3 text-sm px-4 py-2 rounded-lg border bg-card text-left">
-                {item.done ? <Check className="h-4 w-4 text-green-600 shrink-0" /> : item.active ? <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" /> : <div className="h-4 w-4 rounded-full border border-border shrink-0" />}
-                <span className={cn(item.done && "text-muted-foreground", !item.done && !item.active && "text-muted-foreground/50")}>{item.label}</span>
+                {item.state === "done" ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : item.state === "active" ? <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />}
+                <span className={cn(item.state === "done" && "text-muted-foreground", item.state === "pending" && "text-muted-foreground/50")}>{item.label}</span>
               </div>
             ))}
           </div>
