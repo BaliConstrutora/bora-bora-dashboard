@@ -674,7 +674,7 @@ function NovoAtestadoPage() {
       {step === 3 && (
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
-            <div><h2 className="text-base font-semibold">{servicos.length} serviços extraídos — {formValues.numero || "Atestado"} · {formValues.contratante || ""}</h2><p className="text-sm text-muted-foreground mt-0.5">Revise, edite e confirme cada item para a Planilha de Quantidades</p></div>
+            <div><h2 className="text-base font-semibold">{servicos.length} serviços extraídos — {formValues.numeroCat || "Atestado"} · {formValues.contratante || ""}</h2><p className="text-sm text-muted-foreground mt-0.5">Revise, edite e confirme cada item para a Planilha de Quantidades</p></div>
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
           <div className="space-y-3">
