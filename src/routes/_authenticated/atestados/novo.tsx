@@ -69,6 +69,23 @@ const ADITIVO_BADGE_CLASS: Record<AditivoTipo, string> = {
   misto: "bg-amber-100 text-amber-700 border-amber-200",
 };
 
+function formatCnpj(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  const p = [
+    digits.slice(0, 2),
+    digits.slice(2, 5),
+    digits.slice(5, 8),
+    digits.slice(8, 12),
+    digits.slice(12, 14),
+  ];
+  let out = p[0];
+  if (p[1]) out += "." + p[1];
+  if (p[2]) out += "." + p[2];
+  if (p[3]) out += "/" + p[3];
+  if (p[4]) out += "-" + p[4];
+  return out;
+}
+
 function StepIndicator({ step }: { step: number }) {
   const steps = ["Dados do Atestado", "Processamento IA", "Validar Serviços", "Concluído"];
   return (
@@ -199,6 +216,7 @@ function NovoAtestadoPage() {
     resolver: zodResolver(atestadoSchema),
     defaultValues: { status: "em_analise", numero: "", contratante: "", descricao: "", valorContrato: "", dataInicio: "", dataFim: "", respTecnico: "", numeroCat: "", cnpjContratante: "", numeroContrato: "", numeroPregao: "", localExecucao: "", registroCreaRt: "" },
   });
+  const tipoContratanteWatch = form.watch("tipoContratante");
 
   const aditivoForm = useForm<AditivoForm>({
     resolver: zodResolver(aditivoSchema),
