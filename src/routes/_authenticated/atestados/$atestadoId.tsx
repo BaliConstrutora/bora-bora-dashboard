@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FileText, Pencil } from "lucide-react";
+import { ArrowLeft, FileText, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getAtestadoById } from "@/lib/atestados-api";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,20 +60,27 @@ function AtestadoDetailPage() {
     queryKey: ["atestado", atestadoId],
     queryFn: () => getAtestadoById(atestadoId),
   });
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   async function handleVerPdf() {
     if (!atestado?.documentoUrl) {
       toast.info("Este atestado não possui PDF anexado.");
       return;
     }
+    setPdfLoading(true);
     try {
       const { data, error } = await supabase.storage
         .from("atestados-pdfs")
-        .createSignedUrl(atestado.documentoUrl, 60);
-      if (error || !data?.signedUrl) throw error ?? new Error("Não foi possível gerar o link do PDF.");
+        .createSignedUrl(atestado.documentoUrl, 120);
+      if (error || !data?.signedUrl) {
+        toast.error("Não foi possível abrir o PDF.");
+        return;
+      }
       window.open(data.signedUrl, "_blank", "noopener");
-    } catch (e) {
-      toast.error((e as Error).message);
+    } catch {
+      toast.error("Erro ao abrir o PDF.");
+    } finally {
+      setPdfLoading(false);
     }
   }
 
@@ -222,8 +230,13 @@ function AtestadoDetailPage() {
             </CardHeader>
             <CardContent>
               {atestado.documentoUrl ? (
-                <Button onClick={handleVerPdf}>
-                  <FileText className="h-4 w-4 mr-2" />Ver PDF
+                <Button onClick={handleVerPdf} disabled={pdfLoading}>
+                  {pdfLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  Ver PDF
                 </Button>
               ) : (
                 <p className="text-sm text-muted-foreground">Nenhum PDF anexado.</p>
