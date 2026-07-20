@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Search, CheckCircle2, AlertCircle, FileCheck, MoreHorizontal, Trash2, Clock, Loader2, FileText } from "lucide-react";
+import { Plus, Search, CheckCircle2, FileCheck, MoreHorizontal, Trash2, Clock, Loader2, FileText } from "lucide-react";
 import type { AtestadoStatus } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAtestados, deleteAtestado, getAtestadoPdfSignedUrl } from "@/lib/atestados-api";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/atestados/")({
 
 const statusConfig: Record<AtestadoStatus, { label: string; variant: "default" | "destructive" | "secondary"; className?: string }> = {
   ativo: { label: "Ativo", variant: "default", className: "bg-green-600 hover:bg-green-700" },
-  vencido: { label: "Vencido", variant: "destructive" },
+  finalizado: { label: "Finalizado", variant: "secondary" },
   em_analise: { label: "Em Análise", variant: "secondary" },
 };
 
@@ -65,7 +65,7 @@ function AtestadosListPage() {
 
   const total = atestados.length;
   const ativos = atestados.filter((a) => a.status === "ativo").length;
-  const vencidos = atestados.filter((a) => a.status === "vencido").length;
+  const finalizados = atestados.filter((a) => a.status === "finalizado").length;
   const emAnalise = atestados.filter((a) => a.status === "em_analise").length;
 
   function handleDelete() {
@@ -78,7 +78,7 @@ function AtestadosListPage() {
   const statItems = [
     { label: "Total", value: total, icon: FileCheck, color: "text-primary" },
     { label: "Ativos", value: ativos, icon: CheckCircle2, color: "text-green-600" },
-    { label: "Vencidos", value: vencidos, icon: AlertCircle, color: "text-destructive" },
+    { label: "Finalizados", value: finalizados, icon: CheckCircle2, color: "text-muted-foreground" },
     { label: "Em Análise", value: emAnalise, icon: Clock, color: "text-muted-foreground" },
   ];
 
@@ -109,7 +109,7 @@ function AtestadosListPage() {
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
               <SelectItem value="ativo">Ativo</SelectItem>
-              <SelectItem value="vencido">Vencido</SelectItem>
+              <SelectItem value="finalizado">Finalizado</SelectItem>
               <SelectItem value="em_analise">Em Análise</SelectItem>
             </SelectContent>
           </Select>

@@ -35,7 +35,7 @@ const atestadoSchema = z.object({
   dataEmissao: z.string().optional(),
   respTecnico: z.string().min(1, "Obrigatório"),
   artNumero: z.string().optional(),
-  status: z.enum(["ativo", "vencido", "em_analise"]),
+  status: z.enum(["ativo", "finalizado", "em_analise"]),
   observacoes: z.string().optional(),
   numeroCat: z.string().optional(),
   cnpjContratante: z.string().optional(),
@@ -365,7 +365,7 @@ function NovoAtestadoPage() {
                   <FormField control={form.control} name="valorContrato" render={({ field }) => (<FormItem><FormLabel>Valor do Contrato (R$) *</FormLabel><FormControl><Input placeholder="0,00" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="respTecnico" render={({ field }) => (<FormItem><FormLabel>Responsável Técnico *</FormLabel><FormControl><Input placeholder="Eng. Nome Sobrenome" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="registroCreaRt" render={({ field }) => (<FormItem><FormLabel>Registro CREA do RT</FormLabel><FormControl><Input placeholder="CREA-MG 94.712/D" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status *</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger></FormControl><SelectContent><SelectItem value="ativo">Ativo</SelectItem><SelectItem value="em_analise">Em Análise</SelectItem><SelectItem value="vencido">Vencido</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status *</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger></FormControl><SelectContent><SelectItem value="ativo">Ativo</SelectItem><SelectItem value="em_analise">Em Análise</SelectItem><SelectItem value="finalizado">Finalizado</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="artNumero" render={({ field }) => (<FormItem><FormLabel>Número da ART</FormLabel><FormControl><Input placeholder="20240012345" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="dataEmissao" render={({ field }) => (<FormItem><FormLabel>Data de Emissão</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <div className="sm:col-span-2"><FormField control={form.control} name="descricao" render={({ field }) => (<FormItem><FormLabel>Descrição Geral *</FormLabel><FormControl><Textarea placeholder="Descreva as atividades executadas..." className="min-h-[80px]" {...field} /></FormControl><FormMessage /></FormItem>)} /></div>
