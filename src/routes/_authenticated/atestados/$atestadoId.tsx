@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FileText, Pencil } from "lucide-react";
+import { ArrowLeft, FileText, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getAtestadoById } from "@/lib/atestados-api";
 import { supabase } from "@/integrations/supabase/client";
