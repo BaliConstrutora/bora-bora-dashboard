@@ -56,6 +56,7 @@ function AtestadosListPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
 
   const filtered = atestados.filter((a) => {
     const s = search.toLowerCase();
@@ -76,19 +77,25 @@ function AtestadosListPage() {
   }
   const toDelete = atestados.find((a) => a.id === deleteId);
 
-  async function handleVerPdf(documentoUrl: string | undefined) {
+  async function handleVerPdf(atestadoId: string, documentoUrl: string | null | undefined) {
     if (!documentoUrl) {
       toast.info("Este atestado não possui PDF anexado.");
       return;
     }
+    setPdfLoadingId(atestadoId);
     try {
       const { data, error } = await supabase.storage
         .from("atestados-pdfs")
-        .createSignedUrl(documentoUrl, 60);
-      if (error || !data?.signedUrl) throw error ?? new Error("Não foi possível gerar o link do PDF.");
+        .createSignedUrl(documentoUrl, 120);
+      if (error || !data?.signedUrl) {
+        toast.error("Não foi possível abrir o PDF.");
+        return;
+      }
       window.open(data.signedUrl, "_blank", "noopener");
-    } catch (e) {
-      toast.error((e as Error).message);
+    } catch {
+      toast.error("Erro ao abrir o PDF.");
+    } finally {
+      setPdfLoadingId(null);
     }
   }
 
