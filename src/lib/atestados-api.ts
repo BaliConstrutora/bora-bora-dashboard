@@ -41,6 +41,35 @@ type PlanilhaRow = {
 
 const num = (v: number | string | null | undefined) => (v == null ? 0 : typeof v === "string" ? Number(v) : v);
 
+export type AtestadoDoPlanilhaItem = {
+  id: string;
+  numero: string;
+  contratante: string;
+  quantidade: number;
+  unidade: string;
+};
+
+export async function getAtestadosByPlanilhaItem(planilhaItemId: string): Promise<AtestadoDoPlanilhaItem[]> {
+  const { data, error } = await supabase
+    .from("servicos_extraidos")
+    .select("quantidade_sugerida, unidade_sugerida, atestados!inner(id, numero, contratante, created_at)")
+    .eq("planilha_item_id", planilhaItemId)
+    .eq("status", "confirmado");
+  if (error) throw error;
+  type Row = { quantidade_sugerida: number | string | null; unidade_sugerida: string | null; atestados: { id: string; numero: string; contratante: string; created_at: string } };
+  const rows = (data ?? []) as unknown as Row[];
+  return rows
+    .slice()
+    .sort((a, b) => a.atestados.created_at.localeCompare(b.atestados.created_at))
+    .map((r) => ({
+      id: r.atestados.id,
+      numero: r.atestados.numero,
+      contratante: r.atestados.contratante,
+      quantidade: num(r.quantidade_sugerida),
+      unidade: r.unidade_sugerida ?? "",
+    }));
+}
+
 function mapAditivo(r: AditivoRow): Aditivo {
   return {
     id: r.id, numero: r.numero, tipo: r.tipo, dataAssinatura: r.data_assinatura,
