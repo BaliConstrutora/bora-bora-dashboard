@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useState } from "react";
-import { Plus, Search, Pencil, Trash2, X, Check, Table2, Layers, FileCheck } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, X, Check, Table2, Layers, FileCheck, Loader2, ArrowRight } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,7 +18,8 @@ import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { PlanilhaItem } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listPlanilhaItems, savePlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId } from "@/lib/atestados-api";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { listPlanilhaItems, savePlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId, listAtestados, getAtestadosByPlanilhaItem } from "@/lib/atestados-api";
 
 export const Route = createFileRoute("/_authenticated/atestados/planilha")({
   head: () => ({ meta: [{ title: "Planilha de Quantidades — Bora Bora" }] }),
@@ -39,6 +40,11 @@ function PlanilhaPage() {
   const queryClient = useQueryClient();
   const { data: itens = [] } = useQuery({ queryKey: ["planilha"], queryFn: listPlanilhaItems });
   const { data: categoriasCustom = [] } = useQuery({ queryKey: ["categorias-custom"], queryFn: listCategoriasPersonalizadas });
+  const { data: atestadosList = [] } = useQuery({ queryKey: ["atestados"], queryFn: listAtestados });
+  const seqMap = new Map<string, string>();
+  [...atestadosList]
+    .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""))
+    .forEach((a, i) => seqMap.set(a.id, `AT-${String(i + 1).padStart(2, "0")}`));
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState<string>("todas");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -228,7 +234,7 @@ function PlanilhaPage() {
                             <TableCell className="text-xs">{item.unidade}</TableCell>
                             <TableCell>
                               {(item.atestadosCount ?? 0) > 0
-                                ? <Badge variant="secondary" className="text-[10px]">{item.atestadosCount} atestado(s)</Badge>
+                                ? <AtestadosPopover itemId={item.id} count={item.atestadosCount ?? 0} seqMap={seqMap} />
                                 : <span className="text-muted-foreground text-xs">—</span>}
                             </TableCell>
                             <TableCell>
