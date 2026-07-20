@@ -230,8 +230,13 @@ function AtestadoDetailPage() {
             </CardHeader>
             <CardContent>
               {atestado.documentoUrl ? (
-                <Button onClick={handleVerPdf}>
-                  <FileText className="h-4 w-4 mr-2" />Ver PDF
+                <Button onClick={handleVerPdf} disabled={pdfLoading}>
+                  {pdfLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  Ver PDF
                 </Button>
               ) : (
                 <p className="text-sm text-muted-foreground">Nenhum PDF anexado.</p>
