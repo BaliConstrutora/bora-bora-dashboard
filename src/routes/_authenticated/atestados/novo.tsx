@@ -196,10 +196,10 @@ interface NormalizedExtraction {
 
 function normalizeExtracted(ext: ExtractedAtestado): NormalizedExtraction {
   const warnings: string[] = [];
-  const track = <T>(label: string, raw: string | null | undefined, normalized: T | undefined): T | undefined => {
+  function track<T>(label: string, raw: string | null | undefined, normalized: T | undefined): T | undefined {
     if (raw != null && `${raw}`.trim() !== "" && normalized === undefined) warnings.push(label);
     return normalized;
-  };
+  }
   const fields = {
     numeroCat: trimOrUndef(ext.numero_cat),
     contratante: trimOrUndef(ext.contratante),
