@@ -1,34 +1,29 @@
-## Objetivo
-Tornar o badge "N atestado(s)" da Planilha de Quantidades clicável, abrindo um Popover com a lista dos atestados vinculados àquele item.
+## Alterações no módulo de Atestados
 
-## Alterações
+### 1. Migração de banco (Supabase)
+- Converter `atestados.status` de enum `atestado_status` para `text` com CHECK constraint `('total','parcial')`.
+- Passos SQL:
+  1. `ALTER TABLE public.atestados ALTER COLUMN status DROP DEFAULT;`
+  2. `ALTER TABLE public.atestados ALTER COLUMN status TYPE text USING status::text;`
+  3. `UPDATE public.atestados SET status='total' WHERE status IN ('ativo','finalizado');`
+  4. `UPDATE public.atestados SET status='parcial' WHERE status='em_analise';`
+  5. `ALTER TABLE public.atestados ADD CONSTRAINT atestados_status_check CHECK (status IN ('total','parcial'));`
+  6. `ALTER TABLE public.atestados ALTER COLUMN status SET DEFAULT 'parcial';`
+  7. `DROP TYPE IF EXISTS public.atestado_status;` (o enum antigo fica órfão após o cast).
 
-### 1. `src/lib/atestados-api.ts`
-Adicionar `getAtestadosByPlanilhaItem(planilhaItemId: string)`:
-- Consulta `servicos_extraidos` com join em `atestados`, filtrando `planilha_item_id = :id` e `status = 'confirmado'`.
-- Seleciona: `atestados.id`, `atestados.numero`, `atestados.contratante`, `servicos_extraidos.quantidade_sugerida`, `servicos_extraidos.unidade_sugerida`.
-- Retorna array tipado `{ id, numero, contratante, quantidade, unidade }` ordenado por `atestados.created_at asc` (para casar com a ordem AT-01, AT-02 da tela de listagem).
+### 2. `src/types/index.ts`
+- `export type AtestadoStatus = "total" | "parcial";`
 
-### 2. `src/routes/_authenticated/atestados/planilha.tsx`
-- Também buscar `listAtestados` via `useQuery` para calcular o índice sequencial global (AT-01, AT-02…) mapeado por `id`.
-- Substituir o `Badge` estático dentro da célula "Atestados" por um `Popover` (shadcn/ui):
-  - `PopoverTrigger asChild`: o próprio `Badge` com `cursor-pointer`, `hover:bg-secondary/80` (efeito sutil) e `role="button"`.
-  - `PopoverContent` (w-80, `align="end"`): dispara `useQuery` com `queryKey: ["atestados-por-item", item.id]`, `enabled` apenas quando o popover está aberto (estado `openItemId` no componente pai, ou usando `onOpenChange` local por linha via subcomponente).
-  - Estados:
-    - Loading: `Loader2` centralizado + texto "Carregando atestados…".
-    - Vazio: "Nenhum atestado vinculado."
-    - Lista: para cada atestado exibir:
-      - Badge sequencial `AT-NN` (mapa vindo de `listAtestados`).
-      - Número do atestado (fonte mono, negrito).
-      - Contratante (texto secundário, truncado).
-      - Quantidade contribuída: `quantidade.toLocaleString("pt-BR") + " " + unidade`.
-      - Link `Ver atestado →` com `<Link to="/atestados/$atestadoId" params={{ atestadoId: id }}>` fechando o popover ao navegar.
-- Extrair um subcomponente `AtestadosPopover({ item, seqMap })` para isolar o `useQuery` por linha.
+### 3. `src/routes/_authenticated/atestados/novo.tsx`
+- `status` no zod schema: `z.enum(["total","parcial"])`, default `"parcial"`.
+- Select de status: apenas duas opções — `Total` e `Parcial`.
+- Remover o campo "Número do Atestado" (`numero`) do formulário e do schema.
+- No payload de save: `numero: data.numeroCat` (usa numeroCat como número).
+- Ajustar quaisquer defaults/resets que referenciem `numero` ou o status antigo.
 
-### 3. Textos
-Todos em pt-BR: "Atestados vinculados", "Carregando atestados…", "Nenhum atestado vinculado.", "Ver atestado →".
+### 4. Ajustes derivados (impacto obrigatório)
+- `src/routes/_authenticated/atestados/index.tsx`: atualizar `statusConfig` (chaves `total`/`parcial`), rótulos dos cards de estatística e filtros de status para refletir os novos valores. Manter todos os textos em pt-BR.
+- `src/data/mock.ts`: substituir quaisquer `status: "ativo" | "finalizado" | "em_analise"` por `"total"` ou `"parcial"` para não quebrar o typecheck.
+- Verificar `atestados-ai.functions.ts` e `$atestadoId.tsx` para trocar rótulos exibidos, se referenciarem os status antigos.
 
-## Detalhes técnicos
-- Sem migração de banco: as tabelas já existem e as RLS por `auth.uid()` cobrem o join.
-- Nenhuma mudança em outras telas.
-- Sem alterações no schema de tipos globais; tipo do retorno vive local no `atestados-api.ts`.
+Todos os textos em português brasileiro.
