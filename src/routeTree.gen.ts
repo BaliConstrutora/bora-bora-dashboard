@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
@@ -19,6 +20,11 @@ import { Route as AuthenticatedAtestadosPlanilhaRouteImport } from './routes/_au
 import { Route as AuthenticatedAtestadosNovoRouteImport } from './routes/_authenticated/atestados/novo'
 import { Route as AuthenticatedAtestadosAtestadoIdRouteImport } from './routes/_authenticated/atestados/$atestadoId'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -72,6 +78,7 @@ const AuthenticatedAtestadosAtestadoIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/concorrencias': typeof AuthenticatedConcorrenciasRoute
   '/licitacoes': typeof AuthenticatedLicitacoesRoute
   '/atestados/$atestadoId': typeof AuthenticatedAtestadosAtestadoIdRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/concorrencias': typeof AuthenticatedConcorrenciasRoute
   '/licitacoes': typeof AuthenticatedLicitacoesRoute
   '/': typeof AuthenticatedIndexRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/concorrencias': typeof AuthenticatedConcorrenciasRoute
   '/_authenticated/licitacoes': typeof AuthenticatedLicitacoesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/reset-password'
     | '/concorrencias'
     | '/licitacoes'
     | '/atestados/$atestadoId'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/reset-password'
     | '/concorrencias'
     | '/licitacoes'
     | '/'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/reset-password'
     | '/_authenticated/concorrencias'
     | '/_authenticated/licitacoes'
     | '/_authenticated/'
@@ -138,10 +150,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -234,17 +254,8 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
