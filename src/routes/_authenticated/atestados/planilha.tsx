@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { PlanilhaItem } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listPlanilhaItems, upsertPlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId } from "@/lib/atestados-api";
+import { listPlanilhaItems, savePlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId } from "@/lib/atestados-api";
 
 export const Route = createFileRoute("/_authenticated/atestados/planilha")({
   head: () => ({ meta: [{ title: "Planilha de Quantidades — Bora Bora" }] }),
@@ -50,7 +50,7 @@ function PlanilhaPage() {
   const upsertMut = useMutation({
     mutationFn: async (item: Partial<PlanilhaItem> & { id?: string }) => {
       const uid = await getCurrentUserId();
-      return upsertPlanilhaItem(uid, item);
+      return savePlanilhaItem(uid, item);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["planilha"] }),
     onError: (e: Error) => toast.error(e.message),
