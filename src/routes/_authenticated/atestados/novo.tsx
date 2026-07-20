@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
 import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems } from "@/lib/atestados-api";
-import { extractAtestadoFromPdf } from "@/lib/atestados-ai.functions";
+import { extractAtestadoFromPdf, type ExtractedAtestado } from "@/lib/atestados-ai.functions";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/atestados/novo")({
@@ -86,6 +86,141 @@ function formatCnpj(value: string): string {
   if (p[3]) out += "/" + p[3];
   if (p[4]) out += "-" + p[4];
   return out;
+}
+
+// ---------- Normalização dos dados extraídos da IA ----------
+
+const stripAccents = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const canon = (s: string) => stripAccents(s).toLowerCase().trim();
+
+function trimOrUndef(s?: string | null): string | undefined {
+  if (s == null) return undefined;
+  const t = s.replace(/\s+/g, " ").trim();
+  return t ? t : undefined;
+}
+
+function normalizeCnpj(s?: string | null): string | undefined {
+  if (!s) return undefined;
+  const digits = s.replace(/\D/g, "");
+  return digits.length === 14 ? formatCnpj(digits) : undefined;
+}
+
+function normalizeDate(s?: string | null): string | undefined {
+  if (!s) return undefined;
+  const t = s.trim();
+  let y: number, m: number, d: number;
+  let match = t.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  if (match) { y = +match[1]; m = +match[2]; d = +match[3]; }
+  else if ((match = t.match(/^(\d{2})[\/.\-](\d{2})[\/.\-](\d{4})$/))) {
+    d = +match[1]; m = +match[2]; y = +match[3];
+  } else return undefined;
+  if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return undefined;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return undefined;
+  return `${y.toString().padStart(4, "0")}-${m.toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`;
+}
+
+function normalizeTipoContratante(s?: string | null): "publico" | "privado" | undefined {
+  if (!s) return undefined;
+  const c = canon(s);
+  if (/(publico|governo|estatal|federal|municipal|estadual|prefeitura|uniao|dnit|saae)/.test(c)) return "publico";
+  if (/(privado|empresa|particular|s\.?a|ltda)/.test(c)) return "privado";
+  return undefined;
+}
+
+const FINALIDADES = ["infraestrutura","pavimentacao","edificacoes","saneamento","eletrica","outros"] as const;
+type Finalidade = typeof FINALIDADES[number];
+function normalizeFinalidade(s?: string | null): Finalidade | undefined {
+  if (!s) return undefined;
+  const c = canon(s);
+  if (FINALIDADES.includes(c as Finalidade)) return c as Finalidade;
+  if (/(pavimenta)/.test(c)) return "pavimentacao";
+  if (/(edifica|edificio|predio|construcao civil)/.test(c)) return "edificacoes";
+  if (/(saneamento|esgoto|agua)/.test(c)) return "saneamento";
+  if (/(eletric|energia)/.test(c)) return "eletrica";
+  if (/(infra)/.test(c)) return "infraestrutura";
+  if (/(outr)/.test(c)) return "outros";
+  return undefined;
+}
+
+function normalizeValor(s?: string | null): string | undefined {
+  if (!s) return undefined;
+  let t = s.replace(/R\$|\s/gi, "").trim();
+  if (!t) return undefined;
+  const hasDot = t.includes(".");
+  const hasComma = t.includes(",");
+  if (hasDot && hasComma) t = t.replace(/\./g, "").replace(",", ".");
+  else if (hasComma) t = t.replace(",", ".");
+  else if (hasDot) {
+    const lastDot = t.lastIndexOf(".");
+    const after = t.length - lastDot - 1;
+    if (after === 3 && t.split(".").every((p, i) => i === 0 ? /^\d+$/.test(p) : p.length === 3)) {
+      t = t.replace(/\./g, "");
+    }
+  }
+  const n = Number(t);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+const UNIT_ALIASES: Record<string, string> = { m2: "m²", "m^2": "m²", m3: "m³", "m^3": "m³", ms: "mês", mes: "mês" };
+function normalizeUnidade(s?: string | null): string | undefined {
+  if (!s) return undefined;
+  const c = canon(s);
+  const mapped = UNIT_ALIASES[c] ?? c;
+  return UNIDADES.includes(mapped) ? mapped : undefined;
+}
+
+function normalizeCategoria(s?: string | null): string {
+  if (!s) return "Outros";
+  const c = canon(s);
+  const found = CATEGORIAS_PADRAO.find((cat) => canon(cat) === c);
+  return found ?? "Outros";
+}
+
+function normalizeQuantidade(n?: number | null): number | undefined {
+  if (n == null) return undefined;
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+interface NormalizedExtraction {
+  fields: {
+    numeroCat?: string; contratante?: string; cnpjContratante?: string;
+    tipoContratante?: "publico" | "privado"; numeroContrato?: string; numeroPregao?: string;
+    localExecucao?: string; finalidade?: Finalidade; valorContrato?: string;
+    dataInicio?: string; dataFim?: string; respTecnico?: string;
+    registroCreaRt?: string; artNumero?: string; descricao?: string;
+  };
+  warnings: string[];
+}
+
+function normalizeExtracted(ext: ExtractedAtestado): NormalizedExtraction {
+  const warnings: string[] = [];
+  const track = <T>(label: string, raw: string | null | undefined, normalized: T | undefined): T | undefined => {
+    if (raw != null && `${raw}`.trim() !== "" && normalized === undefined) warnings.push(label);
+    return normalized;
+  };
+  const fields = {
+    numeroCat: trimOrUndef(ext.numero_cat),
+    contratante: trimOrUndef(ext.contratante),
+    cnpjContratante: track("CNPJ", ext.cnpj_contratante, normalizeCnpj(ext.cnpj_contratante)),
+    tipoContratante: track("Tipo de contratante", ext.tipo_contratante, normalizeTipoContratante(ext.tipo_contratante)),
+    numeroContrato: trimOrUndef(ext.numero_contrato),
+    numeroPregao: trimOrUndef(ext.numero_pregao),
+    localExecucao: trimOrUndef(ext.local_execucao),
+    finalidade: track("Finalidade", ext.finalidade, normalizeFinalidade(ext.finalidade)),
+    valorContrato: track("Valor do contrato", ext.valor_contrato, normalizeValor(ext.valor_contrato)),
+    dataInicio: track("Data de início", ext.data_inicio, normalizeDate(ext.data_inicio)),
+    dataFim: track("Data de fim", ext.data_fim, normalizeDate(ext.data_fim)),
+    respTecnico: trimOrUndef(ext.resp_tecnico),
+    registroCreaRt: trimOrUndef(ext.registro_crea_rt),
+    artNumero: trimOrUndef(ext.art_numero),
+    descricao: trimOrUndef(ext.descricao),
+  };
+  if (fields.dataInicio && fields.dataFim && fields.dataInicio > fields.dataFim) {
+    warnings.push("Data de início posterior à data de fim");
+  }
+  return { fields, warnings };
 }
 
 function StepIndicator({ step }: { step: number }) {
