@@ -79,6 +79,7 @@ export type Database = {
       atestados: {
         Row: {
           art_numero: string | null
+          cnpj_contratante: string | null
           contratante: string
           created_at: string
           data_emissao: string | null
@@ -86,17 +87,25 @@ export type Database = {
           data_inicio: string
           descricao: string
           documento_url: string | null
+          finalidade: string | null
           id: string
+          local_execucao: string | null
           numero: string
+          numero_cat: string | null
+          numero_contrato: string | null
+          numero_pregao: string | null
           observacoes: string | null
+          registro_crea_rt: string | null
           resp_tecnico: string
           status: Database["public"]["Enums"]["atestado_status"]
+          tipo_contratante: string | null
           updated_at: string
           user_id: string
           valor_contrato: number
         }
         Insert: {
           art_numero?: string | null
+          cnpj_contratante?: string | null
           contratante: string
           created_at?: string
           data_emissao?: string | null
@@ -104,17 +113,25 @@ export type Database = {
           data_inicio: string
           descricao?: string
           documento_url?: string | null
+          finalidade?: string | null
           id?: string
+          local_execucao?: string | null
           numero: string
+          numero_cat?: string | null
+          numero_contrato?: string | null
+          numero_pregao?: string | null
           observacoes?: string | null
+          registro_crea_rt?: string | null
           resp_tecnico?: string
           status?: Database["public"]["Enums"]["atestado_status"]
+          tipo_contratante?: string | null
           updated_at?: string
           user_id: string
           valor_contrato?: number
         }
         Update: {
           art_numero?: string | null
+          cnpj_contratante?: string | null
           contratante?: string
           created_at?: string
           data_emissao?: string | null
@@ -122,11 +139,18 @@ export type Database = {
           data_inicio?: string
           descricao?: string
           documento_url?: string | null
+          finalidade?: string | null
           id?: string
+          local_execucao?: string | null
           numero?: string
+          numero_cat?: string | null
+          numero_contrato?: string | null
+          numero_pregao?: string | null
           observacoes?: string | null
+          registro_crea_rt?: string | null
           resp_tecnico?: string
           status?: Database["public"]["Enums"]["atestado_status"]
+          tipo_contratante?: string | null
           updated_at?: string
           user_id?: string
           valor_contrato?: number

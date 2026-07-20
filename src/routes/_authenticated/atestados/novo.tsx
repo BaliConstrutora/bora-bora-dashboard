@@ -37,6 +37,14 @@ const atestadoSchema = z.object({
   artNumero: z.string().optional(),
   status: z.enum(["ativo", "vencido", "em_analise"]),
   observacoes: z.string().optional(),
+  numeroCat: z.string().optional(),
+  cnpjContratante: z.string().optional(),
+  tipoContratante: z.enum(["publico", "privado"]).optional(),
+  numeroContrato: z.string().optional(),
+  numeroPregao: z.string().optional(),
+  localExecucao: z.string().optional(),
+  registroCreaRt: z.string().optional(),
+  finalidade: z.enum(["infraestrutura","pavimentacao","edificacoes","saneamento","eletrica","outros"]).optional(),
 });
 
 const aditivoSchema = z.object({
@@ -60,6 +68,23 @@ const ADITIVO_BADGE_CLASS: Record<AditivoTipo, string> = {
   escopo: "bg-purple-100 text-purple-700 border-purple-200",
   misto: "bg-amber-100 text-amber-700 border-amber-200",
 };
+
+function formatCnpj(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  const p = [
+    digits.slice(0, 2),
+    digits.slice(2, 5),
+    digits.slice(5, 8),
+    digits.slice(8, 12),
+    digits.slice(12, 14),
+  ];
+  let out = p[0];
+  if (p[1]) out += "." + p[1];
+  if (p[2]) out += "." + p[2];
+  if (p[3]) out += "/" + p[3];
+  if (p[4]) out += "-" + p[4];
+  return out;
+}
 
 function StepIndicator({ step }: { step: number }) {
   const steps = ["Dados do Atestado", "Processamento IA", "Validar Serviços", "Concluído"];
@@ -189,8 +214,9 @@ function NovoAtestadoPage() {
 
   const form = useForm<AtestadoForm>({
     resolver: zodResolver(atestadoSchema),
-    defaultValues: { status: "em_analise", numero: "", contratante: "", descricao: "", valorContrato: "", dataInicio: "", dataFim: "", respTecnico: "" },
+    defaultValues: { status: "em_analise", numero: "", contratante: "", descricao: "", valorContrato: "", dataInicio: "", dataFim: "", respTecnico: "", numeroCat: "", cnpjContratante: "", numeroContrato: "", numeroPregao: "", localExecucao: "", registroCreaRt: "" },
   });
+  const tipoContratanteWatch = form.watch("tipoContratante");
 
   const aditivoForm = useForm<AditivoForm>({
     resolver: zodResolver(aditivoSchema),
@@ -227,6 +253,14 @@ function NovoAtestadoPage() {
           data_emissao: v.dataEmissao || null, resp_tecnico: v.respTecnico,
           art_numero: v.artNumero || null, status: v.status,
           documento_url: documentoPath, observacoes: v.observacoes || null,
+          numero_cat: v.numeroCat || null,
+          cnpj_contratante: v.cnpjContratante || null,
+          tipo_contratante: v.tipoContratante ?? null,
+          numero_contrato: v.numeroContrato || null,
+          numero_pregao: v.tipoContratante === "publico" ? (v.numeroPregao || null) : null,
+          local_execucao: v.localExecucao || null,
+          registro_crea_rt: v.registroCreaRt || null,
+          finalidade: v.finalidade ?? null,
         },
         aditivos: aditivos.map((a) => ({
           user_id: uid, numero: a.numero, tipo: a.tipo,
@@ -316,11 +350,21 @@ function NovoAtestadoPage() {
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField control={form.control} name="numero" render={({ field }) => (<FormItem><FormLabel>Número do Atestado *</FormLabel><FormControl><Input placeholder="AT-2024-001" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="numeroCat" render={({ field }) => (<FormItem><FormLabel>Número do CAT (CREA)</FormLabel><FormControl><Input placeholder="1420150001437" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="tipoContratante" render={({ field }) => (<FormItem><FormLabel>Tipo de Contratante</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger></FormControl><SelectContent><SelectItem value="publico">Público (Governo)</SelectItem><SelectItem value="privado">Privado (Empresa)</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="contratante" render={({ field }) => (<FormItem><FormLabel>Contratante *</FormLabel><FormControl><Input placeholder="Nome da empresa contratante" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="cnpjContratante" render={({ field }) => (<FormItem><FormLabel>CNPJ do Contratante</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" maxLength={18} value={field.value ?? ""} onChange={(e) => field.onChange(formatCnpj(e.target.value))} onBlur={field.onBlur} name={field.name} ref={field.ref} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="numeroContrato" render={({ field }) => (<FormItem><FormLabel>Número do Contrato</FormLabel><FormControl><Input placeholder="014/2014" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  {tipoContratanteWatch === "publico" && (
+                    <FormField control={form.control} name="numeroPregao" render={({ field }) => (<FormItem><FormLabel>Número do Pregão/Licitação</FormLabel><FormControl><Input placeholder="Ex: 001/2014" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  )}
                   <FormField control={form.control} name="dataInicio" render={({ field }) => (<FormItem><FormLabel>Data de Início *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="dataFim" render={({ field }) => (<FormItem><FormLabel>Data de Fim *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="localExecucao" render={({ field }) => (<FormItem><FormLabel>Local de Execução</FormLabel><FormControl><Input placeholder="Ex: Belo Horizonte/MG" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="finalidade" render={({ field }) => (<FormItem><FormLabel>Finalidade</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a finalidade" /></SelectTrigger></FormControl><SelectContent><SelectItem value="infraestrutura">Infraestrutura</SelectItem><SelectItem value="pavimentacao">Pavimentação</SelectItem><SelectItem value="edificacoes">Edificações</SelectItem><SelectItem value="saneamento">Saneamento</SelectItem><SelectItem value="eletrica">Elétrica</SelectItem><SelectItem value="outros">Outros</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="valorContrato" render={({ field }) => (<FormItem><FormLabel>Valor do Contrato (R$) *</FormLabel><FormControl><Input placeholder="0,00" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="respTecnico" render={({ field }) => (<FormItem><FormLabel>Responsável Técnico *</FormLabel><FormControl><Input placeholder="Eng. Nome Sobrenome" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="registroCreaRt" render={({ field }) => (<FormItem><FormLabel>Registro CREA do RT</FormLabel><FormControl><Input placeholder="CREA-MG 94.712/D" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status *</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger></FormControl><SelectContent><SelectItem value="ativo">Ativo</SelectItem><SelectItem value="em_analise">Em Análise</SelectItem><SelectItem value="vencido">Vencido</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="artNumero" render={({ field }) => (<FormItem><FormLabel>Número da ART</FormLabel><FormControl><Input placeholder="20240012345" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="dataEmissao" render={({ field }) => (<FormItem><FormLabel>Data de Emissão</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
