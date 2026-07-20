@@ -112,6 +112,20 @@ export async function listAtestados(): Promise<Atestado[]> {
   );
 }
 
+export async function getAtestadoById(id: string): Promise<Atestado | null> {
+  const { data, error } = await supabase
+    .from("atestados")
+    .select("*, aditivos(*), servicos_extraidos(*)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const row = data as unknown as AtestadoRow & { aditivos: AditivoRow[]; servicos_extraidos: ServicoRow[] };
+  const aditivos = (row.aditivos ?? []).map(mapAditivo).sort((a, b) => a.numero - b.numero);
+  const servicos = (row.servicos_extraidos ?? []).map(mapServico);
+  return mapAtestado(row, aditivos, servicos);
+}
+
 export async function deleteAtestado(id: string) {
   const { error } = await supabase.from("atestados").delete().eq("id", id);
   if (error) throw error;
