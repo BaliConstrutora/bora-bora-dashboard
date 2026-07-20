@@ -4,7 +4,7 @@ import { Plus, Search, CheckCircle2, FileCheck, MoreHorizontal, Trash2, Clock, L
 import type { AtestadoStatus } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAtestados, deleteAtestado } from "@/lib/atestados-api";
-import { supabase } from "@/integrations/supabase/client";
+import { PdfViewerDialog } from "@/components/pdf-viewer-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -56,7 +56,7 @@ function AtestadosListPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
+  const [pdfAtestado, setPdfAtestado] = useState<{ id: string; numero: string; path: string } | null>(null);
 
   const filtered = atestados.filter((a) => {
     const s = search.toLowerCase();
@@ -77,26 +77,12 @@ function AtestadosListPage() {
   }
   const toDelete = atestados.find((a) => a.id === deleteId);
 
-  async function handleVerPdf(atestadoId: string, documentoUrl: string | null | undefined) {
-    if (!documentoUrl) {
+  function handleVerPdf(a: { id: string; numero: string; documentoUrl: string | null | undefined }) {
+    if (!a.documentoUrl) {
       toast.info("Este atestado não possui PDF anexado.");
       return;
     }
-    setPdfLoadingId(atestadoId);
-    try {
-      const { data, error } = await supabase.storage
-        .from("atestados-pdfs")
-        .createSignedUrl(documentoUrl, 120);
-      if (error || !data?.signedUrl) {
-        toast.error("Não foi possível abrir o PDF.");
-        return;
-      }
-      window.open(data.signedUrl, "_blank", "noopener");
-    } catch {
-      toast.error("Erro ao abrir o PDF.");
-    } finally {
-      setPdfLoadingId(null);
-    }
+    setPdfAtestado({ id: a.id, numero: a.numero, path: a.documentoUrl });
   }
 
   const statItems = [
@@ -195,14 +181,9 @@ function AtestadosListPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                disabled={pdfLoadingId === a.id}
-                                onClick={() => handleVerPdf(a.id, a.documentoUrl)}
+                                onClick={() => handleVerPdf(a)}
                               >
-                                {pdfLoadingId === a.id ? (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                  <FileText className="h-4 w-4 mr-2" />
-                                )}
+                                <FileText className="h-4 w-4 mr-2" />
                                 Ver PDF
                               </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(a.id)}>
@@ -235,6 +216,13 @@ function AtestadosListPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PdfViewerDialog
+        open={!!pdfAtestado}
+        onOpenChange={(o) => { if (!o) setPdfAtestado(null); }}
+        storagePath={pdfAtestado?.path ?? null}
+        title={`Visualizar Atestado — ${pdfAtestado?.numero ?? ""}`}
+      />
     </div>
   );
 }
