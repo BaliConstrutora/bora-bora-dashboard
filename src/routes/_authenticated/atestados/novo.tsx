@@ -384,47 +384,47 @@ function NovoAtestadoPage() {
       const ext = result.data;
       setProgress((p) => ({ ...p, extract: "done", identify: "active" }));
 
-      const parseValor = (s?: string | null) => {
-        if (!s) return "";
-        return s.replace(/\./g, "").replace(",", ".");
-      };
+      const { fields: n, warnings } = normalizeExtracted(ext);
       const cur = form.getValues();
+      const tipo = n.tipoContratante ?? cur.tipoContratante;
       form.reset({
         ...cur,
-        numero: cur.numero || (ext.numero_cat ?? ""),
-        numeroCat: ext.numero_cat ?? cur.numeroCat ?? "",
-        contratante: ext.contratante ?? cur.contratante,
-        cnpjContratante: ext.cnpj_contratante ? formatCnpj(ext.cnpj_contratante) : cur.cnpjContratante ?? "",
-        tipoContratante: ext.tipo_contratante ?? cur.tipoContratante,
-        numeroContrato: ext.numero_contrato ?? cur.numeroContrato ?? "",
-        numeroPregao: ext.numero_pregao ?? cur.numeroPregao ?? "",
-        localExecucao: ext.local_execucao ?? cur.localExecucao ?? "",
-        finalidade: ext.finalidade ?? cur.finalidade,
-        valorContrato: ext.valor_contrato ? parseValor(ext.valor_contrato) : cur.valorContrato,
-        dataInicio: ext.data_inicio ?? cur.dataInicio,
-        dataFim: ext.data_fim ?? cur.dataFim,
-        respTecnico: ext.resp_tecnico ?? cur.respTecnico,
-        registroCreaRt: ext.registro_crea_rt ?? cur.registroCreaRt ?? "",
-        artNumero: ext.art_numero ?? cur.artNumero ?? "",
-        descricao: ext.descricao ?? cur.descricao,
+        numero: cur.numero || (n.numeroCat ?? ""),
+        numeroCat: n.numeroCat ?? cur.numeroCat ?? "",
+        contratante: n.contratante ?? cur.contratante,
+        cnpjContratante: n.cnpjContratante ?? cur.cnpjContratante ?? "",
+        tipoContratante: tipo,
+        numeroContrato: n.numeroContrato ?? cur.numeroContrato ?? "",
+        numeroPregao: tipo === "publico" ? (n.numeroPregao ?? cur.numeroPregao ?? "") : "",
+        localExecucao: n.localExecucao ?? cur.localExecucao ?? "",
+        finalidade: n.finalidade ?? cur.finalidade,
+        valorContrato: n.valorContrato ?? cur.valorContrato,
+        dataInicio: n.dataInicio ?? cur.dataInicio,
+        dataFim: n.dataFim ?? cur.dataFim,
+        respTecnico: n.respTecnico ?? cur.respTecnico,
+        registroCreaRt: n.registroCreaRt ?? cur.registroCreaRt ?? "",
+        artNumero: n.artNumero ?? cur.artNumero ?? "",
+        descricao: n.descricao ?? cur.descricao,
       });
       setProgress((p) => ({ ...p, identify: "done", correlate: "active" }));
 
       const planilha = await listPlanilhaItems().catch(() => []);
-      const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
       const svcs: ServicoExtraido[] = (ext.servicos ?? []).map((s, i) => {
-        const codigo = s.codigo_sugerido ?? undefined;
-        const desc = s.descricao_sugerida ?? undefined;
-        const match = planilha.find((p) => (codigo && p.codigo === codigo) || (desc && norm(p.descricao) === norm(desc)));
+        const codigo = trimOrUndef(s.codigo_sugerido);
+        const desc = trimOrUndef(s.descricao_sugerida);
+        const unidade = normalizeUnidade(s.unidade_sugerida);
+        const quantidade = normalizeQuantidade(s.quantidade_sugerida);
+        const categoria = normalizeCategoria(s.categoria_sugerida);
+        const match = planilha.find((p) => (codigo && p.codigo === codigo) || (desc && canon(p.descricao) === canon(desc)));
         return {
           id: crypto.randomUUID(),
           descricaoOriginal: desc ?? `Serviço ${i + 1}`,
-          quantidadeOriginal: s.quantidade_sugerida != null ? `${s.quantidade_sugerida} ${s.unidade_sugerida ?? ""}`.trim() : "",
+          quantidadeOriginal: quantidade != null ? `${quantidade} ${unidade ?? ""}`.trim() : "",
           codigoSugerido: codigo,
           descricaoSugerida: desc,
-          unidadeSugerida: s.unidade_sugerida ?? undefined,
-          quantidadeSugerida: s.quantidade_sugerida ?? undefined,
-          categoriaSugerida: s.categoria_sugerida ?? undefined,
+          unidadeSugerida: unidade,
+          quantidadeSugerida: quantidade,
+          categoriaSugerida: categoria,
           planilhaItemId: match?.id,
           status: "pendente" as const,
         };
@@ -432,6 +432,9 @@ function NovoAtestadoPage() {
       setServicos(svcs);
       setProgress((p) => ({ ...p, correlate: "done" }));
       toast.success("Dados extraídos com sucesso pelo IA!");
+      if (warnings.length) {
+        toast.warning(`${warnings.length} campo(s) precisam de revisão manual`, { description: warnings.join(", ") });
+      }
       setStep(3);
     } catch (err) {
       console.error(err);
