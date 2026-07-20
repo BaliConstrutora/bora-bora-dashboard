@@ -37,6 +37,14 @@ const atestadoSchema = z.object({
   artNumero: z.string().optional(),
   status: z.enum(["ativo", "vencido", "em_analise"]),
   observacoes: z.string().optional(),
+  numeroCat: z.string().optional(),
+  cnpjContratante: z.string().optional(),
+  tipoContratante: z.enum(["publico", "privado"]).optional(),
+  numeroContrato: z.string().optional(),
+  numeroPregao: z.string().optional(),
+  localExecucao: z.string().optional(),
+  registroCreaRt: z.string().optional(),
+  finalidade: z.enum(["infraestrutura","pavimentacao","edificacoes","saneamento","eletrica","outros"]).optional(),
 });
 
 const aditivoSchema = z.object({
@@ -189,7 +197,7 @@ function NovoAtestadoPage() {
 
   const form = useForm<AtestadoForm>({
     resolver: zodResolver(atestadoSchema),
-    defaultValues: { status: "em_analise", numero: "", contratante: "", descricao: "", valorContrato: "", dataInicio: "", dataFim: "", respTecnico: "" },
+    defaultValues: { status: "em_analise", numero: "", contratante: "", descricao: "", valorContrato: "", dataInicio: "", dataFim: "", respTecnico: "", numeroCat: "", cnpjContratante: "", numeroContrato: "", numeroPregao: "", localExecucao: "", registroCreaRt: "" },
   });
 
   const aditivoForm = useForm<AditivoForm>({
@@ -227,6 +235,14 @@ function NovoAtestadoPage() {
           data_emissao: v.dataEmissao || null, resp_tecnico: v.respTecnico,
           art_numero: v.artNumero || null, status: v.status,
           documento_url: documentoPath, observacoes: v.observacoes || null,
+          numero_cat: v.numeroCat || null,
+          cnpj_contratante: v.cnpjContratante || null,
+          tipo_contratante: v.tipoContratante ?? null,
+          numero_contrato: v.numeroContrato || null,
+          numero_pregao: v.tipoContratante === "publico" ? (v.numeroPregao || null) : null,
+          local_execucao: v.localExecucao || null,
+          registro_crea_rt: v.registroCreaRt || null,
+          finalidade: v.finalidade ?? null,
         },
         aditivos: aditivos.map((a) => ({
           user_id: uid, numero: a.numero, tipo: a.tipo,
