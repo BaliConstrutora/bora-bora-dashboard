@@ -28,7 +28,6 @@ export const Route = createFileRoute("/_authenticated/atestados/novo")({
 });
 
 const atestadoSchema = z.object({
-  numero: z.string().min(1, "Obrigatório"),
   contratante: z.string().min(1, "Obrigatório"),
   descricao: z.string().min(1, "Obrigatório"),
   valorContrato: z.string().min(1, "Obrigatório"),
@@ -37,9 +36,9 @@ const atestadoSchema = z.object({
   dataEmissao: z.string().optional(),
   respTecnico: z.string().min(1, "Obrigatório"),
   artNumero: z.string().optional(),
-  status: z.enum(["ativo", "finalizado", "em_analise"]),
+  status: z.enum(["total", "parcial"]),
   observacoes: z.string().optional(),
-  numeroCat: z.string().optional(),
+  numeroCat: z.string().min(1, "Obrigatório"),
   cnpjContratante: z.string().optional(),
   tipoContratante: z.enum(["publico", "privado"]).optional(),
   numeroContrato: z.string().optional(),
@@ -354,7 +353,7 @@ function NovoAtestadoPage() {
 
   const form = useForm<AtestadoForm>({
     resolver: zodResolver(atestadoSchema),
-    defaultValues: { status: "em_analise", numero: "", contratante: "", descricao: "", valorContrato: "", dataInicio: "", dataFim: "", respTecnico: "", numeroCat: "", cnpjContratante: "", numeroContrato: "", numeroPregao: "", localExecucao: "", registroCreaRt: "" },
+    defaultValues: { status: "parcial", contratante: "", descricao: "", valorContrato: "", dataInicio: "", dataFim: "", respTecnico: "", numeroCat: "", cnpjContratante: "", numeroContrato: "", numeroPregao: "", localExecucao: "", registroCreaRt: "" },
   });
   const tipoContratanteWatch = form.watch("tipoContratante");
 
@@ -389,7 +388,6 @@ function NovoAtestadoPage() {
       const tipo = n.tipoContratante ?? cur.tipoContratante;
       form.reset({
         ...cur,
-        numero: cur.numero || (n.numeroCat ?? ""),
         numeroCat: n.numeroCat ?? cur.numeroCat ?? "",
         contratante: n.contratante ?? cur.contratante,
         cnpjContratante: n.cnpjContratante ?? cur.cnpjContratante ?? "",
@@ -478,7 +476,7 @@ function NovoAtestadoPage() {
       }
       await createAtestadoFull({
         atestado: {
-          user_id: uid, numero: v.numero, contratante: v.contratante, descricao: v.descricao,
+          user_id: uid, numero: v.numeroCat, contratante: v.contratante, descricao: v.descricao,
           valor_contrato: valor, data_inicio: v.dataInicio, data_fim: v.dataFim,
           data_emissao: v.dataEmissao || null, resp_tecnico: v.respTecnico,
           art_numero: v.artNumero || null, status: v.status,
@@ -579,8 +577,7 @@ function NovoAtestadoPage() {
               <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4" />Dados do Atestado</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="numero" render={({ field }) => (<FormItem><FormLabel>Número do Atestado *</FormLabel><FormControl><Input placeholder="AT-2024-001" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="numeroCat" render={({ field }) => (<FormItem><FormLabel>Número do CAT (CREA)</FormLabel><FormControl><Input placeholder="1420150001437" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="numeroCat" render={({ field }) => (<FormItem><FormLabel>Número do CAT (CREA) *</FormLabel><FormControl><Input placeholder="1420150001437" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="tipoContratante" render={({ field }) => (<FormItem><FormLabel>Tipo de Contratante</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ""}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger></FormControl><SelectContent><SelectItem value="publico">Público (Governo)</SelectItem><SelectItem value="privado">Privado (Empresa)</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="contratante" render={({ field }) => (<FormItem><FormLabel>Contratante *</FormLabel><FormControl><Input placeholder="Nome da empresa contratante" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="cnpjContratante" render={({ field }) => (<FormItem><FormLabel>CNPJ do Contratante</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" maxLength={18} value={field.value ?? ""} onChange={(e) => field.onChange(formatCnpj(e.target.value))} onBlur={field.onBlur} name={field.name} ref={field.ref} /></FormControl><FormMessage /></FormItem>)} />
@@ -595,7 +592,7 @@ function NovoAtestadoPage() {
                   <FormField control={form.control} name="valorContrato" render={({ field }) => (<FormItem><FormLabel>Valor do Contrato (R$) *</FormLabel><FormControl><Input placeholder="0,00" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="respTecnico" render={({ field }) => (<FormItem><FormLabel>Responsável Técnico *</FormLabel><FormControl><Input placeholder="Eng. Nome Sobrenome" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="registroCreaRt" render={({ field }) => (<FormItem><FormLabel>Registro CREA do RT</FormLabel><FormControl><Input placeholder="CREA-MG 94.712/D" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status *</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger></FormControl><SelectContent><SelectItem value="ativo">Ativo</SelectItem><SelectItem value="em_analise">Em Análise</SelectItem><SelectItem value="finalizado">Finalizado</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status *</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger></FormControl><SelectContent><SelectItem value="total">Total</SelectItem><SelectItem value="parcial">Parcial</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="artNumero" render={({ field }) => (<FormItem><FormLabel>Número da ART</FormLabel><FormControl><Input placeholder="20240012345" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="dataEmissao" render={({ field }) => (<FormItem><FormLabel>Data de Emissão</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <div className="sm:col-span-2"><FormField control={form.control} name="descricao" render={({ field }) => (<FormItem><FormLabel>Descrição Geral *</FormLabel><FormControl><Textarea placeholder="Descreva as atividades executadas..." className="min-h-[80px]" {...field} /></FormControl><FormMessage /></FormItem>)} /></div>
@@ -677,7 +674,7 @@ function NovoAtestadoPage() {
       {step === 3 && (
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
-            <div><h2 className="text-base font-semibold">{servicos.length} serviços extraídos — {formValues.numero || "Atestado"} · {formValues.contratante || ""}</h2><p className="text-sm text-muted-foreground mt-0.5">Revise, edite e confirme cada item para a Planilha de Quantidades</p></div>
+            <div><h2 className="text-base font-semibold">{servicos.length} serviços extraídos — {formValues.numeroCat || "Atestado"} · {formValues.contratante || ""}</h2><p className="text-sm text-muted-foreground mt-0.5">Revise, edite e confirme cada item para a Planilha de Quantidades</p></div>
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
           <div className="space-y-3">

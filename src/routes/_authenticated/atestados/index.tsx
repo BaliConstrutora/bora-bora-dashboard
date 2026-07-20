@@ -27,9 +27,8 @@ export const Route = createFileRoute("/_authenticated/atestados/")({
 });
 
 const statusConfig: Record<AtestadoStatus, { label: string; variant: "default" | "destructive" | "secondary"; className?: string }> = {
-  ativo: { label: "Ativo", variant: "default", className: "bg-green-600 hover:bg-green-700" },
-  finalizado: { label: "Finalizado", variant: "secondary" },
-  em_analise: { label: "Em Análise", variant: "secondary" },
+  total: { label: "Total", variant: "default", className: "bg-green-600 hover:bg-green-700" },
+  parcial: { label: "Parcial", variant: "secondary" },
 };
 
 function fmtBRL(v: number) {
@@ -66,9 +65,8 @@ function AtestadosListPage() {
   });
 
   const total = atestados.length;
-  const ativos = atestados.filter((a) => a.status === "ativo").length;
-  const finalizados = atestados.filter((a) => a.status === "finalizado").length;
-  const emAnalise = atestados.filter((a) => a.status === "em_analise").length;
+  const totais = atestados.filter((a) => a.status === "total").length;
+  const parciais = atestados.filter((a) => a.status === "parcial").length;
 
   function handleDelete() {
     if (!deleteId) return;
@@ -87,9 +85,8 @@ function AtestadosListPage() {
 
   const statItems = [
     { label: "Total", value: total, icon: FileCheck, color: "text-primary" },
-    { label: "Ativos", value: ativos, icon: CheckCircle2, color: "text-green-600" },
-    { label: "Finalizados", value: finalizados, icon: CheckCircle2, color: "text-muted-foreground" },
-    { label: "Em Análise", value: emAnalise, icon: Clock, color: "text-muted-foreground" },
+    { label: "Totais", value: totais, icon: CheckCircle2, color: "text-green-600" },
+    { label: "Parciais", value: parciais, icon: Clock, color: "text-muted-foreground" },
   ];
 
   return (
@@ -118,9 +115,8 @@ function AtestadosListPage() {
             <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os status</SelectItem>
-              <SelectItem value="ativo">Ativo</SelectItem>
-              <SelectItem value="finalizado">Finalizado</SelectItem>
-              <SelectItem value="em_analise">Em Análise</SelectItem>
+              <SelectItem value="total">Total</SelectItem>
+              <SelectItem value="parcial">Parcial</SelectItem>
             </SelectContent>
           </Select>
           <Button asChild>

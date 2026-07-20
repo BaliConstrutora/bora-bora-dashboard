@@ -24,9 +24,8 @@ export const Route = createFileRoute("/_authenticated/atestados/$atestadoId")({
 });
 
 const statusConfig: Record<AtestadoStatus, { label: string; variant: "default" | "destructive" | "secondary"; className?: string }> = {
-  ativo: { label: "Ativo", variant: "default", className: "bg-green-600 hover:bg-green-700" },
-  finalizado: { label: "Finalizado", variant: "secondary" },
-  em_analise: { label: "Em Análise", variant: "secondary" },
+  total: { label: "Total", variant: "default", className: "bg-green-600 hover:bg-green-700" },
+  parcial: { label: "Parcial", variant: "secondary" },
 };
 
 function fmtBRL(v?: number) {

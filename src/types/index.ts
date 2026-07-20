@@ -1,4 +1,4 @@
-export type AtestadoStatus = "ativo" | "finalizado" | "em_analise";
+export type AtestadoStatus = "total" | "parcial";
 
 export type AditivoTipo = "prazo" | "valor" | "escopo" | "misto";
 
