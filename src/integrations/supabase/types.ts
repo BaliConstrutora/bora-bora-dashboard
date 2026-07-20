@@ -97,7 +97,7 @@ export type Database = {
           observacoes: string | null
           registro_crea_rt: string | null
           resp_tecnico: string
-          status: Database["public"]["Enums"]["atestado_status"]
+          status: string
           tipo_contratante: string | null
           updated_at: string
           user_id: string
@@ -123,7 +123,7 @@ export type Database = {
           observacoes?: string | null
           registro_crea_rt?: string | null
           resp_tecnico?: string
-          status?: Database["public"]["Enums"]["atestado_status"]
+          status?: string
           tipo_contratante?: string | null
           updated_at?: string
           user_id: string
@@ -149,7 +149,7 @@ export type Database = {
           observacoes?: string | null
           registro_crea_rt?: string | null
           resp_tecnico?: string
-          status?: Database["public"]["Enums"]["atestado_status"]
+          status?: string
           tipo_contratante?: string | null
           updated_at?: string
           user_id?: string
@@ -310,7 +310,6 @@ export type Database = {
     }
     Enums: {
       aditivo_tipo: "prazo" | "valor" | "escopo" | "misto"
-      atestado_status: "ativo" | "vencido" | "em_analise" | "finalizado"
       servico_status: "pendente" | "confirmado" | "rejeitado" | "ignorado"
     }
     CompositeTypes: {
@@ -440,7 +439,6 @@ export const Constants = {
   public: {
     Enums: {
       aditivo_tipo: ["prazo", "valor", "escopo", "misto"],
-      atestado_status: ["ativo", "vencido", "em_analise", "finalizado"],
       servico_status: ["pendente", "confirmado", "rejeitado", "ignorado"],
     },
   },
