@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
-import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems } from "@/lib/atestados-api";
+import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems, upsertPlanilhaItem } from "@/lib/atestados-api";
 import { extractAtestadoFromPdf, type ExtractedAtestado } from "@/lib/atestados-ai.functions";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -444,7 +444,25 @@ function NovoAtestadoPage() {
   }
 
   function handleProcessar() { void runExtraction(); }
-  function handleConfirm(id: string) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, status: "confirmado" as const } : s)); }
+  async function handleConfirm(id: string) {
+    const servico = servicos.find((s) => s.id === id);
+    if (!servico) return;
+    try {
+      const uid = await getCurrentUserId();
+      const planilhaId = await upsertPlanilhaItem(uid, {
+        codigo: servico.codigoSugerido,
+        categoria: servico.categoriaSugerida,
+        descricao: servico.descricaoSugerida,
+        unidade: servico.unidadeSugerida,
+        quantidade: servico.quantidadeSugerida,
+      });
+      setServicos((prev) => prev.map((s) => s.id === id ? { ...s, status: "confirmado" as const, planilhaItemId: planilhaId } : s));
+      queryClient.invalidateQueries({ queryKey: ["planilha-items"] });
+      toast.success("Item adicionado à Planilha de Quantidades");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível adicionar à Planilha.");
+    }
+  }
   function handleIgnore(id: string) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, status: "ignorado" as const } : s)); }
   function handleUpdate(id: string, field: keyof ServicoExtraido, value: string | number) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s)); }
 

@@ -180,6 +180,7 @@ export type Database = {
       }
       planilha_items: {
         Row: {
+          atestados_count: number
           categoria: string
           codigo: string
           created_at: string
@@ -194,6 +195,7 @@ export type Database = {
           valor_unitario: number | null
         }
         Insert: {
+          atestados_count?: number
           categoria: string
           codigo: string
           created_at?: string
@@ -208,6 +210,7 @@ export type Database = {
           valor_unitario?: number | null
         }
         Update: {
+          atestados_count?: number
           categoria?: string
           codigo?: string
           created_at?: string

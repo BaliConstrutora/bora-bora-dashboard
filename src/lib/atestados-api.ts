@@ -35,6 +35,7 @@ type PlanilhaRow = {
   id: string; codigo: string; categoria: string; descricao: string; unidade: string;
   quantidade: number | string; valor_unitario: number | string | null;
   valor_total: number | string | null; observacoes: string | null;
+  atestados_count: number | null;
   created_at: string; updated_at: string;
 };
 
@@ -94,6 +95,7 @@ export function mapPlanilhaItem(r: PlanilhaRow): PlanilhaItem {
     unidade: r.unidade, quantidade: num(r.quantidade),
     valorUnitario: r.valor_unitario != null ? num(r.valor_unitario) : undefined,
     valorTotal: r.valor_total != null ? num(r.valor_total) : undefined,
+    atestadosCount: r.atestados_count ?? 0,
     observacoes: r.observacoes ?? undefined,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
@@ -171,7 +173,7 @@ export async function listPlanilhaItems(): Promise<PlanilhaItem[]> {
   return (data as unknown as PlanilhaRow[]).map(mapPlanilhaItem);
 }
 
-export async function upsertPlanilhaItem(userId: string, item: Partial<PlanilhaItem> & { id?: string }): Promise<PlanilhaItem> {
+export async function savePlanilhaItem(userId: string, item: Partial<PlanilhaItem> & { id?: string }): Promise<PlanilhaItem> {
   const row = {
     user_id: userId,
     codigo: item.codigo!, categoria: item.categoria!, descricao: item.descricao!,
@@ -188,6 +190,55 @@ export async function upsertPlanilhaItem(userId: string, item: Partial<PlanilhaI
   const { data, error } = await supabase.from("planilha_items").insert(row).select("*").single();
   if (error) throw error;
   return mapPlanilhaItem(data as unknown as PlanilhaRow);
+}
+
+export interface UpsertServicoInput {
+  codigo?: string;
+  categoria?: string;
+  descricao?: string;
+  unidade?: string;
+  quantidade?: number;
+}
+
+export async function upsertPlanilhaItem(userId: string, servico: UpsertServicoInput): Promise<string> {
+  const codigo = servico.codigo?.trim();
+  const descricao = servico.descricao?.trim();
+  const unidade = servico.unidade?.trim();
+  const categoria = servico.categoria?.trim();
+  const quantidade = servico.quantidade;
+  if (!codigo || !descricao || !unidade || !categoria || quantidade == null || !Number.isFinite(quantidade)) {
+    throw new Error("Preencha código, descrição, unidade, categoria e quantidade antes de criar na Planilha.");
+  }
+  const { data: existing, error: findErr } = await supabase
+    .from("planilha_items")
+    .select("id, quantidade, atestados_count")
+    .eq("user_id", userId)
+    .eq("codigo", codigo)
+    .maybeSingle();
+  if (findErr) throw findErr;
+  if (existing) {
+    const row = existing as unknown as { id: string; quantidade: number | string; atestados_count: number | null };
+    const novaQtd = num(row.quantidade) + quantidade;
+    const novoCount = (row.atestados_count ?? 0) + 1;
+    const { error: updErr } = await supabase
+      .from("planilha_items")
+      .update({ quantidade: novaQtd, atestados_count: novoCount })
+      .eq("id", row.id);
+    if (updErr) throw updErr;
+    return row.id;
+  }
+  const { data: inserted, error: insErr } = await supabase
+    .from("planilha_items")
+    .insert({
+      user_id: userId,
+      codigo, categoria, descricao, unidade,
+      quantidade,
+      atestados_count: 1,
+    })
+    .select("id")
+    .single();
+  if (insErr) throw insErr;
+  return (inserted as { id: string }).id;
 }
 
 export async function deletePlanilhaItem(id: string) {
