@@ -1,32 +1,26 @@
-## Objetivo
-Corrigir e padronizar a abertura do PDF anexado do atestado nas telas de lista (`/atestados`) e detalhe (`/atestados/$atestadoId`), garantindo geração de link assinado do Supabase Storage, estado de carregamento e mensagens em português brasileiro.
+Não, não tenho como ver ou lembrar sua senha — ela fica criptografada no backend e nem eu nem você conseguimos recuperá-la. O caminho é **redefinir** a senha por email.
 
-## Estado atual confirmado
-- Ambos os arquivos já importam o cliente correto: `import { supabase } from "@/integrations/supabase/client";`.
-- `index.tsx` já possui `handleVerPdf(documentoUrl: string | undefined)` chamado no dropdown, mas sem estado de carregamento e com TTL de 60s.
-- `$atestadoId.tsx` já possui `handleVerPdf()` sem parâmetros, lendo de `atestado.documentoUrl`, também sem estado de carregamento e com TTL de 60s.
+Hoje a tela `/auth` não tem esse fluxo. Proponho adicioná-lo:
 
-## Alterações planejadas
+## O que será feito
 
-### 1. `src/routes/_authenticated/atestados/index.tsx`
-- Manter a função `handleVerPdf` recebendo `documentoUrl: string | null | undefined`.
-- Aumentar o TTL do link assinado de 60s para 120s (`createSignedUrl(documentoUrl, 120)`).
-- Adicionar estado de carregamento por linha (`pdfLoadingId: string | null`) para exibir spinner no item de dropdown clicado.
-- Garantir mensagens de erro/info em português brasileiro.
+1. **`src/routes/auth.tsx`**
+   - Adicionar link "Esqueci minha senha" abaixo do formulário de Entrar.
+   - Ao clicar, alternar para um mini-formulário que pede o email e chama:
+     ```ts
+     supabase.auth.resetPasswordForEmail(email, {
+       redirectTo: `${window.location.origin}/reset-password`,
+     })
+     ```
+   - Toast de sucesso em pt-BR ("Enviamos um link para seu email").
 
-### 2. `src/routes/_authenticated/atestados/$atestadoId.tsx`
-- Manter a função `handleVerPdf` sem parâmetros, lendo `atestado.documentoUrl`.
-- Aumentar o TTL do link assinado de 60s para 120s.
-- Adicionar estado de carregamento local (`pdfLoading: boolean`) no botão "Ver PDF", exibindo spinner (`Loader2`) enquanto gera o link.
-- Garantir mensagens de erro/info em português brasileiro.
+2. **`src/routes/reset-password.tsx`** (nova rota pública)
+   - Detecta `type=recovery` no hash da URL (Supabase abre a sessão de recuperação automaticamente).
+   - Formulário com nova senha + confirmação (mínimo 6 caracteres).
+   - Chama `supabase.auth.updateUser({ password })` e redireciona para `/auth` com toast de sucesso.
+   - Sem gate de autenticação (fica fora de `_authenticated/`).
 
-### 3. Validação
-- Executar typecheck (`tsgo` ou `bunx tsc --noEmit`) para confirmar que as alterações não quebram tipos.
-- Verificar visualmente no preview se o botão exibe spinner ao clicar e abre o PDF corretamente.
+3. **Emails de autenticação**
+   - Para o link chegar com identidade da Construtora Bali, rodar `email_domain--scaffold_auth_email_templates` (requer domínio de email configurado). Se você ainda não configurou, aparece o diálogo de setup — caso contrário, o Supabase usa o template padrão e o email chega mesmo assim.
 
-## Critérios de aceitação
-- "Ver PDF" na lista gera link assinado de 120s e abre em nova aba.
-- "Ver PDF" no detalhe gera link assinado de 120s e abre em nova aba.
-- Botão mostra estado de carregamento (spinner) durante a geração do link.
-- Mensagens de erro/info permanecem em português brasileiro.
-- Build/typecheck passa sem erros.
+Quer que eu inclua o passo 3 (email branded) ou só os passos 1 e 2 por enquanto?

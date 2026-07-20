@@ -27,6 +27,8 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -73,6 +75,18 @@ function AuthPage() {
     navigate({ to: "/", replace: true });
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Enviamos um link para seu email para redefinir a senha.");
+    setShowForgot(false);
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
@@ -95,13 +109,48 @@ function AuthPage() {
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
             </TabsList>
             <TabsContent value="signin">
+              {showForgot ? (
+                <form onSubmit={handleForgotPassword} className="space-y-3 mt-4">
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      required
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Enviar link de redefinição
+                  </Button>
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-foreground underline w-full text-center"
+                    onClick={() => setShowForgot(false)}
+                  >
+                    Voltar
+                  </button>
+                </form>
+              ) : (
               <form onSubmit={handleSignIn} className="space-y-3 mt-4">
                 <div><Label>Email</Label><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
                 <div><Label>Senha</Label><Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Entrar
                 </Button>
+                <button
+                  type="button"
+                  className="text-sm text-muted-foreground hover:text-foreground underline w-full text-center"
+                  onClick={() => {
+                    setResetEmail(email);
+                    setShowForgot(true);
+                  }}
+                >
+                  Esqueci minha senha
+                </button>
               </form>
+              )}
             </TabsContent>
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-3 mt-4">
