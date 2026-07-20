@@ -77,7 +77,7 @@ function AtestadosListPage() {
   }
   const toDelete = atestados.find((a) => a.id === deleteId);
 
-  function handleVerPdf(a: { id: string; numero: string; documentoUrl: string | null | undefined }) {
+  function handleVerPdf(a: { id: string; numero: string; documentoUrl?: string | null }) {
     if (!a.documentoUrl) {
       toast.info("Este atestado não possui PDF anexado.");
       return;
