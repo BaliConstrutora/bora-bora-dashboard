@@ -2,6 +2,16 @@ export type AtestadoStatus = "ativo" | "vencido" | "em_analise";
 
 export type AditivoTipo = "prazo" | "valor" | "escopo" | "misto";
 
+export type TipoContratante = "publico" | "privado";
+
+export type FinalidadeAtestado =
+  | "infraestrutura"
+  | "pavimentacao"
+  | "edificacoes"
+  | "saneamento"
+  | "eletrica"
+  | "outros";
+
 export type LicitacaoModalidade =
   | "pregao_eletronico"
   | "pregao_presencial"
@@ -91,6 +101,14 @@ export interface Atestado {
   aditivos: Aditivo[];
   servicos: ServicoExtraido[];
   observacoes?: string;
+  numeroCat?: string;
+  cnpjContratante?: string;
+  tipoContratante?: TipoContratante;
+  numeroContrato?: string;
+  numeroPregao?: string;
+  localExecucao?: string;
+  registroCreaRt?: string;
+  finalidade?: FinalidadeAtestado;
   createdAt: string;
   updatedAt: string;
 }
