@@ -194,8 +194,16 @@ function AtestadosListPage() {
                               <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleVerPdf(a.documentoUrl)}>
-                                <FileText className="h-4 w-4 mr-2" />Ver PDF
+                              <DropdownMenuItem
+                                disabled={pdfLoadingId === a.id}
+                                onClick={() => handleVerPdf(a.id, a.documentoUrl)}
+                              >
+                                {pdfLoadingId === a.id ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <FileText className="h-4 w-4 mr-2" />
+                                )}
+                                Ver PDF
                               </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(a.id)}>
                                 <Trash2 className="h-4 w-4 mr-2" />Excluir
