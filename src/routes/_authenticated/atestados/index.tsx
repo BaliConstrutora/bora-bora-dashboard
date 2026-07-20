@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Plus, Search, CheckCircle2, FileCheck, MoreHorizontal, Trash2, Clock, Loader2, FileText } from "lucide-react";
 import type { AtestadoStatus } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listAtestados, deleteAtestado, getAtestadoPdfSignedUrl } from "@/lib/atestados-api";
+import { listAtestados, deleteAtestado } from "@/lib/atestados-api";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -75,6 +76,22 @@ function AtestadosListPage() {
   }
   const toDelete = atestados.find((a) => a.id === deleteId);
 
+  async function handleVerPdf(documentoUrl: string | undefined) {
+    if (!documentoUrl) {
+      toast.info("Este atestado não possui PDF anexado.");
+      return;
+    }
+    try {
+      const { data, error } = await supabase.storage
+        .from("atestados-pdfs")
+        .createSignedUrl(documentoUrl, 60);
+      if (error || !data?.signedUrl) throw error ?? new Error("Não foi possível gerar o link do PDF.");
+      window.open(data.signedUrl, "_blank", "noopener");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
   const statItems = [
     { label: "Total", value: total, icon: FileCheck, color: "text-primary" },
     { label: "Ativos", value: ativos, icon: CheckCircle2, color: "text-green-600" },
@@ -125,6 +142,7 @@ function AtestadosListPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-20">Seq.</TableHead>
                   <TableHead>Número</TableHead>
                   <TableHead>Contratante</TableHead>
                   <TableHead>Valor do Contrato</TableHead>
@@ -137,16 +155,27 @@ function AtestadosListPage() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       {isLoading ? (<span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Carregando...</span>) : "Nenhum atestado encontrado."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((a) => {
+                  filtered.map((a, index) => {
                     const sc = statusConfig[a.status];
                     return (
                       <TableRow key={a.id}>
-                        <TableCell className="font-medium">{a.numero}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{`AT-${String(index + 1).padStart(2, "0")}`}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Link
+                            to="/atestados/$atestadoId"
+                            params={{ atestadoId: a.id }}
+                            className="text-primary font-medium hover:underline cursor-pointer"
+                          >
+                            {a.numero}
+                          </Link>
+                        </TableCell>
                         <TableCell>{a.contratante}</TableCell>
                         <TableCell>{fmtBRL(a.valorContrato)}</TableCell>
                         <TableCell>{fmtDate(a.dataInicio)} – {fmtDate(a.dataFim)}</TableCell>
@@ -158,20 +187,9 @@ function AtestadosListPage() {
                               <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {a.documentoUrl && (
-                                <DropdownMenuItem
-                                  onClick={async () => {
-                                    try {
-                                      const url = await getAtestadoPdfSignedUrl(a.documentoUrl!);
-                                      window.open(url, "_blank", "noopener");
-                                    } catch (e) {
-                                      toast.error((e as Error).message);
-                                    }
-                                  }}
-                                >
-                                  <FileText className="h-4 w-4 mr-2" />Ver PDF
-                                </DropdownMenuItem>
-                              )}
+                              <DropdownMenuItem onClick={() => handleVerPdf(a.documentoUrl)}>
+                                <FileText className="h-4 w-4 mr-2" />Ver PDF
+                              </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteId(a.id)}>
                                 <Trash2 className="h-4 w-4 mr-2" />Excluir
                               </DropdownMenuItem>
