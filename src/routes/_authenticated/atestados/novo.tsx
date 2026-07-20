@@ -28,7 +28,6 @@ export const Route = createFileRoute("/_authenticated/atestados/novo")({
 });
 
 const atestadoSchema = z.object({
-  numero: z.string().min(1, "Obrigatório"),
   contratante: z.string().min(1, "Obrigatório"),
   descricao: z.string().min(1, "Obrigatório"),
   valorContrato: z.string().min(1, "Obrigatório"),
@@ -37,9 +36,9 @@ const atestadoSchema = z.object({
   dataEmissao: z.string().optional(),
   respTecnico: z.string().min(1, "Obrigatório"),
   artNumero: z.string().optional(),
-  status: z.enum(["ativo", "finalizado", "em_analise"]),
+  status: z.enum(["total", "parcial"]),
   observacoes: z.string().optional(),
-  numeroCat: z.string().optional(),
+  numeroCat: z.string().min(1, "Obrigatório"),
   cnpjContratante: z.string().optional(),
   tipoContratante: z.enum(["publico", "privado"]).optional(),
   numeroContrato: z.string().optional(),
