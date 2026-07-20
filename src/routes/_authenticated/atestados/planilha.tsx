@@ -26,6 +26,61 @@ export const Route = createFileRoute("/_authenticated/atestados/planilha")({
   component: PlanilhaPage,
 });
 
+function AtestadosPopover({ itemId, count, seqMap }: { itemId: string; count: number; seqMap: Map<string, string> }) {
+  const [open, setOpen] = useState(false);
+  const { data, isLoading } = useQuery({
+    queryKey: ["atestados-por-item", itemId],
+    queryFn: () => getAtestadosByPlanilhaItem(itemId),
+    enabled: open,
+  });
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Badge variant="secondary" role="button" className="text-[10px] cursor-pointer hover:bg-secondary/70 transition-colors">
+          {count} atestado(s)
+        </Badge>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="px-3 py-2 border-b">
+          <p className="text-xs font-semibold">Atestados vinculados</p>
+        </div>
+        <div className="max-h-80 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando atestados…
+            </div>
+          ) : !data || data.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">Nenhum atestado vinculado.</p>
+          ) : (
+            <ul className="divide-y">
+              {data.map((a) => (
+                <li key={a.id} className="px-3 py-2.5 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] font-mono">{seqMap.get(a.id) ?? "AT-—"}</Badge>
+                    <span className="font-mono text-xs font-semibold truncate">{a.numero}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{a.contratante}</p>
+                  <p className="text-xs tabular-nums">
+                    Contribuição: <span className="font-medium text-foreground">{a.quantidade.toLocaleString("pt-BR")} {a.unidade}</span>
+                  </p>
+                  <Link
+                    to="/atestados/$atestadoId"
+                    params={{ atestadoId: a.id }}
+                    onClick={() => setOpen(false)}
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    Ver atestado <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 const itemSchema = z.object({
   codigo: z.string().min(1, "Obrigatório"),
   categoria: z.string().min(1, "Obrigatório"),
