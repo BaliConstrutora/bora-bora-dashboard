@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FileText, Pencil, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { getAtestadoById } from "@/lib/atestados-api";
-import { supabase } from "@/integrations/supabase/client";
+import { PdfViewerDialog } from "@/components/pdf-viewer-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,28 +60,14 @@ function AtestadoDetailPage() {
     queryKey: ["atestado", atestadoId],
     queryFn: () => getAtestadoById(atestadoId),
   });
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfOpen, setPdfOpen] = useState(false);
 
-  async function handleVerPdf() {
+  function handleVerPdf() {
     if (!atestado?.documentoUrl) {
       toast.info("Este atestado não possui PDF anexado.");
       return;
     }
-    setPdfLoading(true);
-    try {
-      const { data, error } = await supabase.storage
-        .from("atestados-pdfs")
-        .createSignedUrl(atestado.documentoUrl, 120);
-      if (error || !data?.signedUrl) {
-        toast.error("Não foi possível abrir o PDF.");
-        return;
-      }
-      window.open(data.signedUrl, "_blank", "noopener");
-    } catch {
-      toast.error("Erro ao abrir o PDF.");
-    } finally {
-      setPdfLoading(false);
-    }
+    setPdfOpen(true);
   }
 
   return (
@@ -230,12 +216,8 @@ function AtestadoDetailPage() {
             </CardHeader>
             <CardContent>
               {atestado.documentoUrl ? (
-                <Button onClick={handleVerPdf} disabled={pdfLoading}>
-                  {pdfLoading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <FileText className="h-4 w-4 mr-2" />
-                  )}
+                <Button onClick={handleVerPdf}>
+                  <FileText className="h-4 w-4 mr-2" />
                   Ver PDF
                 </Button>
               ) : (
@@ -245,6 +227,12 @@ function AtestadoDetailPage() {
           </Card>
         </>
       )}
+      <PdfViewerDialog
+        open={pdfOpen}
+        onOpenChange={setPdfOpen}
+        storagePath={atestado?.documentoUrl ?? null}
+        title={`Visualizar Atestado — ${atestado?.numero ?? ""}`}
+      />
     </div>
   );
 }
