@@ -32,7 +32,7 @@ export const mockAtestados: Atestado[] = [
     descricao: "Execução de redes de abastecimento de água e coleta de esgoto sanitário",
     valorContrato: 3200000, dataInicio: "2023-02-01", dataFim: "2024-01-31",
     dataEmissao: "2024-02-10", respTecnico: "Eng. Carlos Mendes", artNumero: "20230012345",
-    status: "ativo", documentoUrl: "/docs/at-2024-001.pdf",
+    status: "total", documentoUrl: "/docs/at-2024-001.pdf",
     aditivos: [{ id: "ad1", numero: 1, tipo: "prazo", dataAssinatura: "2023-09-15", novaDataFim: "2024-01-31", descricao: "Prorrogação de prazo em 3 meses devido a chuvas intensas", createdAt: "2023-09-15" }],
     servicos: [
       { id: "s1", descricaoOriginal: "Redes de abastecimento de água – adutora", quantidadeOriginal: "4.800 m", codigoSugerido: "6.1", categoriaSugerida: "Instalações Hidráulicas", descricaoSugerida: "Rede de abastecimento de água (adutora)", unidadeSugerida: "m", quantidadeSugerida: 4800, planilhaItemId: "p3", status: "confirmado" },
@@ -40,10 +40,10 @@ export const mockAtestados: Atestado[] = [
     ],
     createdAt: "2024-02-10", updatedAt: "2024-02-10",
   },
-  { id: "a2", numero: "AT-2024-002", contratante: "Prefeitura de Belo Horizonte", descricao: "Construção de escola municipal com 12 salas de aula", valorContrato: 5850000, dataInicio: "2022-06-01", dataFim: "2023-11-30", dataEmissao: "2023-12-05", respTecnico: "Eng. Ana Lima", status: "ativo", aditivos: [], servicos: [], createdAt: "2023-12-05", updatedAt: "2023-12-05" },
-  { id: "a3", numero: "AT-2023-008", contratante: "DNIT – MG", descricao: "Pavimentação e recuperação de rodovia estadual – 42 km", valorContrato: 12400000, dataInicio: "2021-03-15", dataFim: "2023-03-14", respTecnico: "Eng. Ricardo Souza", status: "finalizado", aditivos: [], servicos: [], createdAt: "2023-04-01", updatedAt: "2023-04-01" },
-  { id: "a4", numero: "AT-2024-003", contratante: "CEMIG Distribuição S.A.", descricao: "Obras civis para subestação elétrica de 138kV", valorContrato: 4750000, dataInicio: "2023-09-01", dataFim: "2024-08-31", respTecnico: "Eng. Patrícia Vieira", status: "em_analise", aditivos: [], servicos: [], createdAt: "2024-01-10", updatedAt: "2024-01-10" },
-  { id: "a5", numero: "AT-2024-004", contratante: "Vale S.A.", descricao: "Construção de galpão industrial e infraestrutura de pátio", valorContrato: 11500000, dataInicio: "2024-03-01", dataFim: "2025-02-28", respTecnico: "Eng. Marcos Ferreira", status: "ativo", aditivos: [], servicos: [], createdAt: "2024-03-05", updatedAt: "2024-03-05" },
+  { id: "a2", numero: "AT-2024-002", contratante: "Prefeitura de Belo Horizonte", descricao: "Construção de escola municipal com 12 salas de aula", valorContrato: 5850000, dataInicio: "2022-06-01", dataFim: "2023-11-30", dataEmissao: "2023-12-05", respTecnico: "Eng. Ana Lima", status: "total", aditivos: [], servicos: [], createdAt: "2023-12-05", updatedAt: "2023-12-05" },
+  { id: "a3", numero: "AT-2023-008", contratante: "DNIT – MG", descricao: "Pavimentação e recuperação de rodovia estadual – 42 km", valorContrato: 12400000, dataInicio: "2021-03-15", dataFim: "2023-03-14", respTecnico: "Eng. Ricardo Souza", status: "total", aditivos: [], servicos: [], createdAt: "2023-04-01", updatedAt: "2023-04-01" },
+  { id: "a4", numero: "AT-2024-003", contratante: "CEMIG Distribuição S.A.", descricao: "Obras civis para subestação elétrica de 138kV", valorContrato: 4750000, dataInicio: "2023-09-01", dataFim: "2024-08-31", respTecnico: "Eng. Patrícia Vieira", status: "parcial", aditivos: [], servicos: [], createdAt: "2024-01-10", updatedAt: "2024-01-10" },
+  { id: "a5", numero: "AT-2024-004", contratante: "Vale S.A.", descricao: "Construção de galpão industrial e infraestrutura de pátio", valorContrato: 11500000, dataInicio: "2024-03-01", dataFim: "2025-02-28", respTecnico: "Eng. Marcos Ferreira", status: "total", aditivos: [], servicos: [], createdAt: "2024-03-05", updatedAt: "2024-03-05" },
 ];
 
 export const mockServicosExtraidos: Omit<ServicoExtraido, "planilhaItemId" | "status">[] = [
