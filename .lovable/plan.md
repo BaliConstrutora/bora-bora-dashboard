@@ -1,26 +1,37 @@
-Não, não tenho como ver ou lembrar sua senha — ela fica criptografada no backend e nem eu nem você conseguimos recuperá-la. O caminho é **redefinir** a senha por email.
+Replace `window.open` with an inline PDF viewer Dialog in both atestados pages.
 
-Hoje a tela `/auth` não tem esse fluxo. Proponho adicioná-lo:
+## New component: `src/components/pdf-viewer-dialog.tsx`
+Reusable to avoid duplication.
 
-## O que será feito
+Props: `open: boolean`, `onOpenChange: (o: boolean) => void`, `storagePath: string | null`, `title: string` (e.g. `"Visualizar Atestado — AT-123"`).
 
-1. **`src/routes/auth.tsx`**
-   - Adicionar link "Esqueci minha senha" abaixo do formulário de Entrar.
-   - Ao clicar, alternar para um mini-formulário que pede o email e chama:
-     ```ts
-     supabase.auth.resetPasswordForEmail(email, {
-       redirectTo: `${window.location.origin}/reset-password`,
-     })
-     ```
-   - Toast de sucesso em pt-BR ("Enviamos um link para seu email").
+Behavior:
+- On open with a valid `storagePath`, call `supabase.storage.from("atestados-pdfs").createSignedUrl(storagePath, 120)`.
+- While loading, show a centered `Loader2` spinner inside the dialog body.
+- On error or missing URL, `toast.error("Não foi possível carregar o PDF.")` and close.
+- On success, render `<iframe src={signedUrl} width="100%" height="100%" style={{ border: "none" }} />` in the body.
+- Reset URL state when the dialog closes so reopening re-fetches a fresh signed URL.
 
-2. **`src/routes/reset-password.tsx`** (nova rota pública)
-   - Detecta `type=recovery` no hash da URL (Supabase abre a sessão de recuperação automaticamente).
-   - Formulário com nova senha + confirmação (mínimo 6 caracteres).
-   - Chama `supabase.auth.updateUser({ password })` e redireciona para `/auth` com toast de sucesso.
-   - Sem gate de autenticação (fica fora de `_authenticated/`).
+Layout:
+- `DialogContent className="max-w-5xl w-full h-[85vh] flex flex-col p-0"`.
+- `DialogHeader` (padded) with `DialogTitle` = provided title.
+- Body: `flex-1 min-h-0` containing the iframe (fills space).
+- Footer: `flex items-center justify-between` with:
+  - Left: `Button variant="outline"` labeled `Fechar` that calls `onOpenChange(false)`.
+  - Right: `<a href={signedUrl} download>` wrapping a `Button` labeled `Baixar PDF` (disabled while loading / when no URL). Uses `<a>` tag with `download` attribute per spec.
 
-3. **Emails de autenticação**
-   - Para o link chegar com identidade da Construtora Bali, rodar `email_domain--scaffold_auth_email_templates` (requer domínio de email configurado). Se você ainda não configurou, aparece o diálogo de setup — caso contrário, o Supabase usa o template padrão e o email chega mesmo assim.
+## `src/routes/_authenticated/atestados/index.tsx`
+- Replace `pdfLoadingId` + `handleVerPdf`'s `window.open` flow with dialog state: `const [pdfAtestado, setPdfAtestado] = useState<{ id: string; numero: string; path: string } | null>(null)`.
+- Dropdown `Ver PDF` item: if `!a.documentoUrl`, `toast.info(...)`; else `setPdfAtestado({ id: a.id, numero: a.numero, path: a.documentoUrl })`.
+- Render `<PdfViewerDialog open={!!pdfAtestado} onOpenChange={(o) => !o && setPdfAtestado(null)} storagePath={pdfAtestado?.path ?? null} title={`Visualizar Atestado — ${pdfAtestado?.numero ?? ""}`} />`.
+- Remove now-unused `pdfLoadingId` state and spinner in dropdown item (icon stays as `FileText`).
 
-Quer que eu inclua o passo 3 (email branded) ou só os passos 1 e 2 por enquanto?
+## `src/routes/_authenticated/atestados/$atestadoId.tsx`
+- Replace `pdfLoading` + `handleVerPdf`'s `window.open` flow with `const [pdfOpen, setPdfOpen] = useState(false)`.
+- `Ver PDF` button (in Documento card): keeps `FileText` icon; onClick opens the dialog (with `toast.info` guard if no `documentoUrl`).
+- Render `<PdfViewerDialog open={pdfOpen} onOpenChange={setPdfOpen} storagePath={atestado.documentoUrl ?? null} title={`Visualizar Atestado — ${atestado.numero}`} />`.
+
+## Notes
+- All UI strings in pt-BR as specified.
+- No API/schema changes.
+- Uses existing shadcn `Dialog` primitives (already present in the project via shadcn/ui).
