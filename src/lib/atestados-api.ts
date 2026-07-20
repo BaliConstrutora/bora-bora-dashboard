@@ -1,11 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Atestado, Aditivo, ServicoExtraido, PlanilhaItem, AtestadoStatus, AditivoTipo } from "@/types";
+import type { Atestado, Aditivo, ServicoExtraido, PlanilhaItem, AtestadoStatus, AditivoTipo, TipoContratante, FinalidadeAtestado } from "@/types";
 
 type AtestadoRow = {
   id: string; numero: string; contratante: string; descricao: string;
   valor_contrato: number | string; data_inicio: string; data_fim: string;
   data_emissao: string | null; resp_tecnico: string; art_numero: string | null;
   status: AtestadoStatus; documento_url: string | null; observacoes: string | null;
+  numero_cat: string | null; cnpj_contratante: string | null;
+  tipo_contratante: TipoContratante | null; numero_contrato: string | null;
+  numero_pregao: string | null; local_execucao: string | null;
+  registro_crea_rt: string | null; finalidade: FinalidadeAtestado | null;
   created_at: string; updated_at: string;
 };
 
@@ -71,6 +75,14 @@ function mapAtestado(r: AtestadoRow, aditivos: Aditivo[] = [], servicos: Servico
     dataEmissao: r.data_emissao ?? undefined, respTecnico: r.resp_tecnico,
     artNumero: r.art_numero ?? undefined, status: r.status,
     documentoUrl: r.documento_url ?? undefined, observacoes: r.observacoes ?? undefined,
+    numeroCat: r.numero_cat ?? undefined,
+    cnpjContratante: r.cnpj_contratante ?? undefined,
+    tipoContratante: r.tipo_contratante ?? undefined,
+    numeroContrato: r.numero_contrato ?? undefined,
+    numeroPregao: r.numero_pregao ?? undefined,
+    localExecucao: r.local_execucao ?? undefined,
+    registroCreaRt: r.registro_crea_rt ?? undefined,
+    finalidade: r.finalidade ?? undefined,
     aditivos, servicos,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
@@ -109,6 +121,10 @@ export interface NewAtestadoPayload {
     valor_contrato: number; data_inicio: string; data_fim: string;
     data_emissao: string | null; resp_tecnico: string; art_numero: string | null;
     status: AtestadoStatus; documento_url: string | null; observacoes: string | null;
+    numero_cat: string | null; cnpj_contratante: string | null;
+    tipo_contratante: TipoContratante | null; numero_contrato: string | null;
+    numero_pregao: string | null; local_execucao: string | null;
+    registro_crea_rt: string | null; finalidade: FinalidadeAtestado | null;
   };
   aditivos: Array<{
     user_id: string; numero: number; tipo: AditivoTipo;
