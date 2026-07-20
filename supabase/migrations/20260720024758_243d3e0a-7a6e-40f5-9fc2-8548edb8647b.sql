@@ -1,0 +1,1 @@
+ALTER TABLE public.planilha_items ADD COLUMN IF NOT EXISTS atestados_count integer NOT NULL DEFAULT 0;
