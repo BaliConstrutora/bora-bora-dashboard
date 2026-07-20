@@ -307,7 +307,7 @@ export type Database = {
     }
     Enums: {
       aditivo_tipo: "prazo" | "valor" | "escopo" | "misto"
-      atestado_status: "ativo" | "vencido" | "em_analise"
+      atestado_status: "ativo" | "vencido" | "em_analise" | "finalizado"
       servico_status: "pendente" | "confirmado" | "rejeitado" | "ignorado"
     }
     CompositeTypes: {
@@ -437,7 +437,7 @@ export const Constants = {
   public: {
     Enums: {
       aditivo_tipo: ["prazo", "valor", "escopo", "misto"],
-      atestado_status: ["ativo", "vencido", "em_analise"],
+      atestado_status: ["ativo", "vencido", "em_analise", "finalizado"],
       servico_status: ["pendente", "confirmado", "rejeitado", "ignorado"],
     },
   },
