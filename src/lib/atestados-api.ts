@@ -10,6 +10,7 @@ type AtestadoRow = {
   tipo_contratante: TipoContratante | null; numero_contrato: string | null;
   numero_pregao: string | null; local_execucao: string | null;
   registro_crea_rt: string | null; finalidade: FinalidadeAtestado | null;
+  ordem: number | null;
   created_at: string; updated_at: string;
 };
 
@@ -113,6 +114,7 @@ function mapAtestado(r: AtestadoRow, aditivos: Aditivo[] = [], servicos: Servico
     localExecucao: r.local_execucao ?? undefined,
     registroCreaRt: r.registro_crea_rt ?? undefined,
     finalidade: r.finalidade ?? undefined,
+    ordem: r.ordem ?? null,
     aditivos, servicos,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
@@ -134,7 +136,8 @@ export async function listAtestados(): Promise<Atestado[]> {
   const { data, error } = await supabase
     .from("atestados")
     .select("*, aditivos(*)")
-    .order("created_at", { ascending: false });
+    .order("ordem", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
   if (error) throw error;
   return (data as unknown as (AtestadoRow & { aditivos: AditivoRow[] })[]).map((r) =>
     mapAtestado(r, (r.aditivos ?? []).map(mapAditivo)),
@@ -157,6 +160,11 @@ export async function getAtestadoById(id: string): Promise<Atestado | null> {
 
 export async function deleteAtestado(id: string) {
   const { error } = await supabase.from("atestados").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateAtestadoOrdem(id: string, ordem: number): Promise<void> {
+  const { error } = await supabase.from("atestados").update({ ordem } as never).eq("id", id);
   if (error) throw error;
 }
 
