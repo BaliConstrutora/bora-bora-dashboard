@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
-import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems, upsertPlanilhaItem, listCategoriasExistentes } from "@/lib/atestados-api";
+import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems, upsertPlanilhaItem, listCategoriasExistentes, listCategoriasPersonalizadas } from "@/lib/atestados-api";
 import { extractAtestadoFromPdf, type ExtractedAtestado } from "@/lib/atestados-ai.functions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -353,10 +353,16 @@ function NovoAtestadoPage() {
   const extractFn = useServerFn(extractAtestadoFromPdf);
 
   const { data: categoriasDB = [] } = useQuery({
-    queryKey: ["categorias-existentes"],
+    queryKey: ["categorias-planilha"],
     queryFn: listCategoriasExistentes,
+    staleTime: 0,
   });
-  const todasCategorias = [...new Set([...CATEGORIAS_PADRAO, ...categoriasDB])].sort();
+  const { data: categoriasCustom = [] } = useQuery({
+    queryKey: ["categorias-personalizadas"],
+    queryFn: listCategoriasPersonalizadas,
+    staleTime: 0,
+  });
+  const todasCategorias = [...new Set([...CATEGORIAS_PADRAO, ...categoriasCustom, ...categoriasDB])].sort();
 
   const form = useForm<AtestadoForm>({
     resolver: zodResolver(atestadoSchema),
