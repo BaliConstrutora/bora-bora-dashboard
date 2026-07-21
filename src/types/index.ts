@@ -47,6 +47,9 @@ export interface PlanilhaItem {
   valorTotal?: number;
   atestadosCount?: number;
   observacoes?: string;
+  itemPaiId?: string | null;
+  fatorConversao?: number | null;
+  unidadeOrigem?: string | null;
   createdAt: string;
   updatedAt: string;
 }
