@@ -1,32 +1,26 @@
-## Situação atual
+## Diagnóstico (verificado no banco)
 
-Verifiquei os três arquivos citados e a correção já está aplicada:
+- `planilha_items` está **vazia** — zero linhas, zero categorias. Por isso o merge com `listCategoriasExistentes` não adiciona nada.
+- `categorias_personalizadas` contém exatamente **Drenagem, Terraplanagem, Transportes** — que é onde essas categorias vivem hoje.
+- A função `listCategoriasPersonalizadas` já existe em `atestados-api.ts` e lê dessa tabela.
 
-**`src/lib/atestados-api.ts` (linhas 443–453)** — `listCategoriasExistentes` já consulta `planilha_items` sem filtro de `user_id`, retorna categorias únicas ordenadas.
-
-```ts
-supabase.from("planilha_items").select("categoria")
-```
-
-**`src/routes/_authenticated/atestados/novo.tsx` (linhas 355–359)** — já importa `listCategoriasExistentes`, executa a query e mescla com `CATEGORIAS_PADRAO`:
-
-```ts
-const todasCategorias = [...new Set([...CATEGORIAS_PADRAO, ...categoriasDB])].sort();
-```
-
-Passa `todasCategorias` para o `ServiceCard`, que usa a prop `categorias` no dropdown.
-
-**`src/routes/_authenticated/atestados/$atestadoId.tsx` (linhas 136–140)** — mesmo padrão: query + merge + sort, usado no modo de edição.
-
-A política RLS de SELECT em `planilha_items` liberada para autenticados também já foi aplicada anteriormente.
+A instrução original aponta para `planilha_itens` (nome errado — a tabela real é `planilha_items`) e ainda assim, mesmo corrigindo o nome, não resolveria: a tabela está vazia.
 
 ## Plano
 
-Nenhuma alteração de código é necessária — o comportamento pedido já está no projeto.
+1. **`src/lib/atestados-api.ts`** — adicionar log de erro em `listCategoriasExistentes` (mantendo `planilha_items`, o nome correto) e retornar `[]` no erro em vez de lançar, para o dropdown nunca ficar travado por uma leitura ruim.
 
-Se você está vendo um dropdown que continua incompleto na tela, é outro sintoma (cache do React Query, categoria salva com espaços/caixa diferente, ou registro não gravado). Me confirme:
+2. **`src/routes/_authenticated/atestados/novo.tsx`** — passar a mesclar **três** fontes em `todasCategorias`:
+   - `CATEGORIAS_PADRAO` (defaults hardcoded já usados)
+   - `listCategoriasPersonalizadas()` — nova query, `queryKey: ["categorias-personalizadas"]` (é onde Drenagem/Terraplanagem/Transportes estão)
+   - `listCategoriasExistentes()` — mantida com `queryKey: ["categorias-planilha"]`, `staleTime: 0` (fica útil quando `planilha_items` tiver dados)
 
-1. Qual categoria específica está faltando aparecer?
-2. Ela existe na tabela `planilha_items`? (posso consultar)
+   Merge → `new Set([...])` → `sort()` → passar para `<ServiceCard categorias={todasCategorias} />` (a prop já existe).
 
-Aí investigo a causa real em vez de reaplicar uma correção já presente.
+3. **`src/routes/_authenticated/atestados/$atestadoId.tsx`** — mesma mescla tripla no modo de edição, para consistência entre as duas telas.
+
+Sem migração de banco; sem mudança de RLS; sem mudar o nome da tabela.
+
+## Resultado esperado
+
+O dropdown de categoria em Novo Atestado e no detalhe passa a listar: defaults + Drenagem + Terraplanagem + Transportes (e qualquer outra que o usuário criar em `categorias_personalizadas` ou que passe a existir em `planilha_items`), ordenado alfabeticamente.
