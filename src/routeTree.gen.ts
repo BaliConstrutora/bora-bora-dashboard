@@ -18,6 +18,7 @@ import { Route as AuthenticatedConcorrenciasRouteImport } from './routes/_authen
 import { Route as AuthenticatedAtestadosIndexRouteImport } from './routes/_authenticated/atestados/index'
 import { Route as AuthenticatedAtestadosPlanilhaRouteImport } from './routes/_authenticated/atestados/planilha'
 import { Route as AuthenticatedAtestadosNovoRouteImport } from './routes/_authenticated/atestados/novo'
+import { Route as AuthenticatedAtestadosAtestadoIdRouteImport } from './routes/_authenticated/atestados/$atestadoId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -67,6 +68,12 @@ const AuthenticatedAtestadosNovoRoute =
     path: '/atestados/novo',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAtestadosAtestadoIdRoute =
+  AuthenticatedAtestadosAtestadoIdRouteImport.update({
+    id: '/atestados/$atestadoId',
+    path: '/atestados/$atestadoId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/concorrencias': typeof AuthenticatedConcorrenciasRoute
   '/licitacoes': typeof AuthenticatedLicitacoesRoute
+  '/atestados/$atestadoId': typeof AuthenticatedAtestadosAtestadoIdRoute
   '/atestados/novo': typeof AuthenticatedAtestadosNovoRoute
   '/atestados/planilha': typeof AuthenticatedAtestadosPlanilhaRoute
   '/atestados/': typeof AuthenticatedAtestadosIndexRoute
@@ -84,6 +92,7 @@ export interface FileRoutesByTo {
   '/concorrencias': typeof AuthenticatedConcorrenciasRoute
   '/licitacoes': typeof AuthenticatedLicitacoesRoute
   '/': typeof AuthenticatedIndexRoute
+  '/atestados/$atestadoId': typeof AuthenticatedAtestadosAtestadoIdRoute
   '/atestados/novo': typeof AuthenticatedAtestadosNovoRoute
   '/atestados/planilha': typeof AuthenticatedAtestadosPlanilhaRoute
   '/atestados': typeof AuthenticatedAtestadosIndexRoute
@@ -96,6 +105,7 @@ export interface FileRoutesById {
   '/_authenticated/concorrencias': typeof AuthenticatedConcorrenciasRoute
   '/_authenticated/licitacoes': typeof AuthenticatedLicitacoesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/atestados/$atestadoId': typeof AuthenticatedAtestadosAtestadoIdRoute
   '/_authenticated/atestados/novo': typeof AuthenticatedAtestadosNovoRoute
   '/_authenticated/atestados/planilha': typeof AuthenticatedAtestadosPlanilhaRoute
   '/_authenticated/atestados/': typeof AuthenticatedAtestadosIndexRoute
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/concorrencias'
     | '/licitacoes'
+    | '/atestados/$atestadoId'
     | '/atestados/novo'
     | '/atestados/planilha'
     | '/atestados/'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/concorrencias'
     | '/licitacoes'
     | '/'
+    | '/atestados/$atestadoId'
     | '/atestados/novo'
     | '/atestados/planilha'
     | '/atestados'
@@ -129,6 +141,7 @@ export interface FileRouteTypes {
     | '/_authenticated/concorrencias'
     | '/_authenticated/licitacoes'
     | '/_authenticated/'
+    | '/_authenticated/atestados/$atestadoId'
     | '/_authenticated/atestados/novo'
     | '/_authenticated/atestados/planilha'
     | '/_authenticated/atestados/'
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAtestadosNovoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/atestados/$atestadoId': {
+      id: '/_authenticated/atestados/$atestadoId'
+      path: '/atestados/$atestadoId'
+      fullPath: '/atestados/$atestadoId'
+      preLoaderRoute: typeof AuthenticatedAtestadosAtestadoIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -212,6 +232,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConcorrenciasRoute: typeof AuthenticatedConcorrenciasRoute
   AuthenticatedLicitacoesRoute: typeof AuthenticatedLicitacoesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAtestadosAtestadoIdRoute: typeof AuthenticatedAtestadosAtestadoIdRoute
   AuthenticatedAtestadosNovoRoute: typeof AuthenticatedAtestadosNovoRoute
   AuthenticatedAtestadosPlanilhaRoute: typeof AuthenticatedAtestadosPlanilhaRoute
   AuthenticatedAtestadosIndexRoute: typeof AuthenticatedAtestadosIndexRoute
@@ -221,6 +242,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConcorrenciasRoute: AuthenticatedConcorrenciasRoute,
   AuthenticatedLicitacoesRoute: AuthenticatedLicitacoesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAtestadosAtestadoIdRoute: AuthenticatedAtestadosAtestadoIdRoute,
   AuthenticatedAtestadosNovoRoute: AuthenticatedAtestadosNovoRoute,
   AuthenticatedAtestadosPlanilhaRoute: AuthenticatedAtestadosPlanilhaRoute,
   AuthenticatedAtestadosIndexRoute: AuthenticatedAtestadosIndexRoute,
