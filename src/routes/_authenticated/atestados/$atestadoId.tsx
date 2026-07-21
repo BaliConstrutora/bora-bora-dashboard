@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, Pencil, Check, X, Loader2, Send } from "lucide-react";
+import { ArrowLeft, FileText, Pencil, Check, X, Loader2, Send, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAtestadoById,
@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { AtestadoStatus, FinalidadeAtestado, ServicoExtraido, TipoContratante } from "@/types";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 
@@ -65,8 +66,22 @@ function tipoLabel(t?: string) {
 function finalidadeLabel(f?: string) {
   return FINALIDADES.find((x) => x.value === f)?.label ?? f ?? "—";
 }
-function isNaPlanilha(s: ServicoExtraido) {
-  return s.status === "confirmado" || !!s.planilhaItemId;
+
+function isTitulo(s: ServicoExtraido): boolean {
+  const qty = s.quantidadeSugerida ?? 0;
+  if (qty !== 0) return false;
+  const desc = (s.descricaoSugerida ?? s.descricaoOriginal ?? "").trim();
+  const isAllCaps = desc.length > 0 && desc === desc.toUpperCase() && /[A-ZÁÉÍÓÚÀÃÕÂÊÔ]/.test(desc);
+  const codeEndsWithDoubleZero = (s.codigoSugerido ?? "").endsWith(".00");
+  return isAllCaps || codeEndsWithDoubleZero;
+}
+
+function isNaPlanilha(s: ServicoExtraido): boolean {
+  return !!s.planilhaItemId;
+}
+
+function isConfirmadoSemVinculo(s: ServicoExtraido): boolean {
+  return s.status === "confirmado" && !s.planilhaItemId;
 }
 
 function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -263,17 +278,20 @@ function AtestadoDetailPage() {
 
   const displayNumero = atestado?.numeroCat ?? atestado?.numero ?? "";
 
+  const naoEnviados = atestado?.servicos.filter(
+    (s) => !isTitulo(s) && !isNaPlanilha(s)
+  ).length ?? 0;
+
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <Button asChild variant="ghost" size="sm">
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <Button variant="ghost" asChild>
           <Link to="/atestados">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar para Lista
           </Link>
         </Button>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           {atestado?.documentoUrl && (
             <Button variant="outline" onClick={handleVerPdf}>
               <FileText className="h-4 w-4 mr-2" />
@@ -311,24 +329,19 @@ function AtestadoDetailPage() {
         </div>
       ) : error || !atestado ? (
         <Card>
-          <CardContent className="p-6 space-y-3">
+          <CardContent className="p-8 text-center space-y-3">
             <h2 className="text-lg font-semibold">Atestado não encontrado</h2>
             <p className="text-sm text-muted-foreground">
               {error ? (error as Error).message : "O atestado solicitado não existe ou foi removido."}
             </p>
-            <Button asChild variant="outline">
-              <Link to="/atestados">Voltar para Lista</Link>
-            </Button>
+            <Button asChild><Link to="/atestados">Voltar para Lista</Link></Button>
           </CardContent>
         </Card>
       ) : (
         <>
-          {/* Dados do Atestado */}
           <Card>
-            <CardHeader>
-              <CardTitle>Dados do Atestado</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
+            <CardHeader><CardTitle>Dados do Atestado</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <FieldRow label="Nº CAT (CREA)">
                   {isEditing && editForm ? (
@@ -337,8 +350,7 @@ function AtestadoDetailPage() {
                     <p>{displayNumero || "—"}</p>
                   )}
                 </FieldRow>
-
-                <FieldRow label="Tipo Contratante">
+                <FieldRow label="Tipo de Contratante">
                   {isEditing && editForm ? (
                     <Select value={editForm.tipoContratante} onValueChange={(v) => setField("tipoContratante", v as TipoContratante)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -351,7 +363,6 @@ function AtestadoDetailPage() {
                     <p>{tipoLabel(atestado.tipoContratante)}</p>
                   )}
                 </FieldRow>
-
                 <FieldRow label="Contratante">
                   {isEditing && editForm ? (
                     <Input value={editForm.contratante} onChange={(e) => setField("contratante", e.target.value)} />
@@ -359,25 +370,22 @@ function AtestadoDetailPage() {
                     <p>{atestado.contratante}</p>
                   )}
                 </FieldRow>
-
-                <FieldRow label="CNPJ">
+                <FieldRow label="CNPJ do Contratante">
                   {isEditing && editForm ? (
                     <Input value={editForm.cnpjContratante} onChange={(e) => setField("cnpjContratante", e.target.value)} placeholder="00.000.000/0000-00" />
                   ) : (
                     <p>{atestado.cnpjContratante || "—"}</p>
                   )}
                 </FieldRow>
-
-                <FieldRow label="Nº Contrato">
+                <FieldRow label="Nº do Contrato">
                   {isEditing && editForm ? (
                     <Input value={editForm.numeroContrato} onChange={(e) => setField("numeroContrato", e.target.value)} placeholder="Ex: 014/2024" />
                   ) : (
                     <p>{atestado.numeroContrato || "—"}</p>
                   )}
                 </FieldRow>
-
                 {(isEditing ? editForm?.tipoContratante === "publico" : atestado.tipoContratante === "publico") && (
-                  <FieldRow label="Nº Pregão">
+                  <FieldRow label="Nº do Pregão">
                     {isEditing && editForm ? (
                       <Input value={editForm.numeroPregao} onChange={(e) => setField("numeroPregao", e.target.value)} placeholder="Ex: 003/2024" />
                     ) : (
@@ -385,7 +393,6 @@ function AtestadoDetailPage() {
                     )}
                   </FieldRow>
                 )}
-
                 <FieldRow label="Local de Execução">
                   {isEditing && editForm ? (
                     <Input value={editForm.localExecucao} onChange={(e) => setField("localExecucao", e.target.value)} placeholder="Ex: Belo Horizonte/MG" />
@@ -393,7 +400,6 @@ function AtestadoDetailPage() {
                     <p>{atestado.localExecucao || "—"}</p>
                   )}
                 </FieldRow>
-
                 <FieldRow label="Finalidade">
                   {isEditing && editForm ? (
                     <Select value={editForm.finalidade} onValueChange={(v) => setField("finalidade", v as FinalidadeAtestado)}>
@@ -408,7 +414,6 @@ function AtestadoDetailPage() {
                     <p>{finalidadeLabel(atestado.finalidade)}</p>
                   )}
                 </FieldRow>
-
                 <FieldRow label="Valor do Contrato">
                   {isEditing && editForm ? (
                     <Input value={editForm.valorContrato} onChange={(e) => setField("valorContrato", e.target.value)} placeholder="0,00" />
@@ -416,31 +421,27 @@ function AtestadoDetailPage() {
                     <p>{fmtBRL(atestado.valorContrato)}</p>
                   )}
                 </FieldRow>
-
-                <FieldRow label="Data Início">
+                <FieldRow label="Data de Início">
                   {isEditing && editForm ? (
                     <Input type="date" value={editForm.dataInicio} onChange={(e) => setField("dataInicio", e.target.value)} />
                   ) : (
                     <p>{fmtDate(atestado.dataInicio)}</p>
                   )}
                 </FieldRow>
-
-                <FieldRow label="Data Fim">
+                <FieldRow label="Data de Término">
                   {isEditing && editForm ? (
                     <Input type="date" value={editForm.dataFim} onChange={(e) => setField("dataFim", e.target.value)} />
                   ) : (
                     <p>{fmtDate(atestado.dataFim)}</p>
                   )}
                 </FieldRow>
-
-                <FieldRow label="Data Emissão">
+                <FieldRow label="Data de Emissão">
                   {isEditing && editForm ? (
                     <Input type="date" value={editForm.dataEmissao} onChange={(e) => setField("dataEmissao", e.target.value)} />
                   ) : (
                     <p>{fmtDate(atestado.dataEmissao)}</p>
                   )}
                 </FieldRow>
-
                 <FieldRow label="Responsável Técnico">
                   {isEditing && editForm ? (
                     <Input value={editForm.respTecnico} onChange={(e) => setField("respTecnico", e.target.value)} />
@@ -448,23 +449,20 @@ function AtestadoDetailPage() {
                     <p>{atestado.respTecnico}</p>
                   )}
                 </FieldRow>
-
-                <FieldRow label="Registro CREA/RT">
+                <FieldRow label="Registro CREA do RT">
                   {isEditing && editForm ? (
                     <Input value={editForm.registroCreaRt} onChange={(e) => setField("registroCreaRt", e.target.value)} placeholder="CREA-MG 00.000/D" />
                   ) : (
                     <p>{atestado.registroCreaRt || "—"}</p>
                   )}
                 </FieldRow>
-
-                <FieldRow label="Nº ART">
+                <FieldRow label="Nº da ART">
                   {isEditing && editForm ? (
                     <Input value={editForm.artNumero} onChange={(e) => setField("artNumero", e.target.value)} />
                   ) : (
                     <p>{atestado.artNumero || "—"}</p>
                   )}
                 </FieldRow>
-
                 <FieldRow label="Status">
                   {isEditing && editForm ? (
                     <Select value={editForm.status} onValueChange={(v) => setField("status", v as AtestadoStatus)}>
@@ -504,7 +502,6 @@ function AtestadoDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Aditivos */}
           <Card>
             <CardHeader><CardTitle>Aditivos</CardTitle></CardHeader>
             <CardContent>
@@ -535,14 +532,13 @@ function AtestadoDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Serviços Executados */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle>Serviços Executados</CardTitle>
-                {!isEditing && atestado.servicos.some((s) => !isNaPlanilha(s)) && (
+                {!isEditing && naoEnviados > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    {atestado.servicos.filter((s) => !isNaPlanilha(s)).length} serviço(s) ainda não enviado(s) à Planilha
+                    {naoEnviados} serviço(s) ainda não enviado(s) à Planilha
                   </p>
                 )}
               </div>
@@ -609,38 +605,77 @@ function AtestadoDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {atestado.servicos.map((s) => (
-                        <TableRow key={s.id}>
-                          <TableCell className="font-medium">{s.codigoSugerido ?? "—"}</TableCell>
-                          <TableCell>{s.descricaoSugerida ?? s.descricaoOriginal}</TableCell>
-                          <TableCell>{s.quantidadeSugerida?.toLocaleString("pt-BR") ?? "—"}</TableCell>
-                          <TableCell>{s.unidadeSugerida ?? "—"}</TableCell>
-                          <TableCell>{s.categoriaSugerida ?? "—"}</TableCell>
-                          <TableCell>
-                            {isNaPlanilha(s) ? (
-                              <Badge className="bg-green-600 text-white text-xs">
-                                <Check className="h-3 w-3 mr-1" />
-                                Na Planilha
-                              </Badge>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs border-primary text-primary hover:bg-primary hover:text-white"
-                                onClick={() => handleEnviarParaPlanilha(s)}
-                                disabled={sendingIds.has(s.id)}
-                              >
-                                {sendingIds.has(s.id) ? (
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                ) : (
-                                  <Send className="h-3 w-3 mr-1" />
-                                )}
-                                Enviar
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {atestado.servicos.map((s) => {
+                        const titulo = isTitulo(s);
+                        return (
+                          <TableRow key={s.id} className={titulo ? "bg-muted/40" : undefined}>
+                            <TableCell className={titulo ? "text-muted-foreground font-medium" : "font-medium"}>
+                              {s.codigoSugerido ?? "—"}
+                            </TableCell>
+                            <TableCell className={titulo ? "text-muted-foreground italic text-xs" : ""}>
+                              {s.descricaoSugerida ?? s.descricaoOriginal}
+                            </TableCell>
+                            <TableCell className={titulo ? "text-muted-foreground" : ""}>
+                              {titulo ? "—" : (s.quantidadeSugerida?.toLocaleString("pt-BR") ?? "—")}
+                            </TableCell>
+                            <TableCell className={titulo ? "text-muted-foreground" : ""}>
+                              {titulo ? "—" : (s.unidadeSugerida ?? "—")}
+                            </TableCell>
+                            <TableCell className={titulo ? "text-muted-foreground" : ""}>
+                              {s.categoriaSugerida ?? "—"}
+                            </TableCell>
+                            <TableCell>
+                              {titulo ? (
+                                <Badge variant="outline" className="text-xs text-muted-foreground">Título</Badge>
+                              ) : isNaPlanilha(s) ? (
+                                <Badge className="bg-green-600 text-white text-xs">
+                                  <Check className="h-3 w-3 mr-1" />
+                                  Na Planilha
+                                </Badge>
+                              ) : isConfirmadoSemVinculo(s) ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-xs border-amber-500 text-amber-600 hover:bg-amber-50"
+                                        onClick={() => handleEnviarParaPlanilha(s)}
+                                        disabled={sendingIds.has(s.id)}
+                                      >
+                                        {sendingIds.has(s.id) ? (
+                                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                        ) : (
+                                          <AlertCircle className="h-3 w-3 mr-1" />
+                                        )}
+                                        Re-enviar
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Item marcado como enviado mas não encontrado na Planilha. Clique para corrigir.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs border-primary text-primary hover:bg-primary hover:text-white"
+                                  onClick={() => handleEnviarParaPlanilha(s)}
+                                  disabled={sendingIds.has(s.id)}
+                                >
+                                  {sendingIds.has(s.id) ? (
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <Send className="h-3 w-3 mr-1" />
+                                  )}
+                                  Enviar
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -648,7 +683,6 @@ function AtestadoDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Documento */}
           <Card>
             <CardHeader><CardTitle>Documento</CardTitle></CardHeader>
             <CardContent>
