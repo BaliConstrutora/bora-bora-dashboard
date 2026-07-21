@@ -181,8 +181,10 @@ export interface UpdateAtestadoPatch {
   observacoes?: string;
 }
 
+type AtestadoUpdate = Partial<AtestadoRow>;
+
 export async function updateAtestado(id: string, patch: UpdateAtestadoPatch): Promise<void> {
-  const row: Record<string, unknown> = {};
+  const row: AtestadoUpdate = {};
   if (patch.numeroCat !== undefined) {
     row.numero_cat = patch.numeroCat || null;
     row.numero = patch.numeroCat;
@@ -204,7 +206,7 @@ export async function updateAtestado(id: string, patch: UpdateAtestadoPatch): Pr
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.descricao !== undefined) row.descricao = patch.descricao;
   if (patch.observacoes !== undefined) row.observacoes = patch.observacoes || null;
-  const { error } = await supabase.from("atestados").update(row).eq("id", id);
+  const { error } = await supabase.from("atestados").update(row as never).eq("id", id);
   if (error) throw error;
 }
 
@@ -216,14 +218,16 @@ export interface UpdateServicoPatch {
   categoriaSugerida?: string;
 }
 
+type ServicoUpdate = Partial<ServicoRow>;
+
 export async function updateServico(id: string, patch: UpdateServicoPatch): Promise<void> {
-  const row: Record<string, unknown> = {};
+  const row: ServicoUpdate = {};
   if (patch.codigoSugerido !== undefined) row.codigo_sugerido = patch.codigoSugerido || null;
   if (patch.descricaoSugerida !== undefined) row.descricao_sugerida = patch.descricaoSugerida || null;
   if (patch.quantidadeSugerida !== undefined) row.quantidade_sugerida = patch.quantidadeSugerida;
   if (patch.unidadeSugerida !== undefined) row.unidade_sugerida = patch.unidadeSugerida || null;
   if (patch.categoriaSugerida !== undefined) row.categoria_sugerida = patch.categoriaSugerida || null;
-  const { error } = await supabase.from("servicos_extraidos").update(row).eq("id", id);
+  const { error } = await supabase.from("servicos_extraidos").update(row as never).eq("id", id);
   if (error) throw error;
 }
 
