@@ -188,6 +188,8 @@ function AtestadoDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["atestado", atestadoId] });
       queryClient.invalidateQueries({ queryKey: ["atestados"] });
+      queryClient.invalidateQueries({ queryKey: ["planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-existentes"] });
       toast.success("Atestado atualizado com sucesso!");
       setIsEditing(false);
       setEditForm(null);
