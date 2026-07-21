@@ -183,8 +183,10 @@ function AtestadoDetailPage() {
         observacoes: editForm.observacoes,
       });
       for (const s of editServicos) {
+        const original = atestado?.servicos.find((os) => os.id === s.id);
+        const codigoChanged = s.codigoSugerido !== (original?.codigoSugerido ?? "");
         await updateServico(s.id, {
-          codigoSugerido: s.codigoSugerido,
+          ...(codigoChanged ? { codigoSugerido: s.codigoSugerido } : {}),
           descricaoSugerida: s.descricaoSugerida,
           quantidadeSugerida: s.quantidadeSugerida,
           unidadeSugerida: s.unidadeSugerida,

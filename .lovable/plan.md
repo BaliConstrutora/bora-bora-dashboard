@@ -1,24 +1,26 @@
-Objetivo: expandir a lista de unidades de medida do módulo Atestados com duas novas opções para serviços de transporte e movimentação: **txkm** (tonelada por quilômetro) e **m³xkm** (metro cúbico por quilômetro).
+````text
+PROBLEM
+-------
+In src/routes/_authenticated/atestados/$atestadoId.tsx, the saveMut mutation currently loops through every edited service and always passes codigoSugerido to updateServico. Because updateServico clears planilha_item_id and resets status to "pendente" whenever codigoSugerido changes, this causes ALL services to be unlinked from planilha_itens on every save — even when the user did not change the code.
 
-Alterações propostas:
+FIX
+---
+Replace the service update loop inside saveMut so it compares each service's current codigoSugerido with the original service loaded from the database. Only include codigoSugerido in the update payload when the code actually changed. All other fields (descricaoSugerida, quantidadeSugerida, unidadeSugerida, categoriaSugerida) continue to be sent every time.
 
-1. **src/data/mock.ts**
-   - Atualizar o array `UNIDADES` para:
-     ```ts
-     export const UNIDADES = ["m", "m²", "m³", "t", "kg", "vb", "un", "l", "h", "mês", "km", "txkm", "m³xkm"];
-     ```
+Code change:
+for (const s of editServicos) {
+  const original = atestado?.servicos.find((os) => os.id === s.id);
+  const codigoChanged = s.codigoSugerido !== (original?.codigoSugerido ?? "");
+  await updateServico(s.id, {
+    ...(codigoChanged ? { codigoSugerido: s.codigoSugerido } : {}),
+    descricaoSugerida: s.descricaoSugerida,
+    quantidadeSugerida: s.quantidadeSugerida,
+    unidadeSugerida: s.unidadeSugerida,
+    categoriaSugerida: s.categoriaSugerida,
+  });
+}
 
-2. **src/routes/_authenticated/atestados/novo.tsx**
-   - Como o arquivo já importa `UNIDADES` de `@/data/mock`, a lista será automaticamente atualizada. Nenhuma alteração adicional necessária, apenas garantir que o dropdown de unidade do `ServiceCard` use o array importado.
-
-3. **src/routes/_authenticated/atestados/$atestadoId.tsx**
-   - O arquivo já importa `UNIDADES` de `@/data/mock`, portanto a atualização do array central reflete aqui automaticamente. Verificar se há alguma declaração local redundante.
-
-4. **src/routes/_authenticated/atestados/planilha.tsx**
-   - O arquivo já importa `UNIDADES` de `@/data/mock`, então também reflete a atualização central. Verificar se há declaração local redundante.
-
-Validação:
-- Typecheck (`bunx tsc --noEmit` ou `tsgo`) para garantir que não há quebra de tipos.
-- Verificar visualmente os dropdowns de unidade nas páginas de cadastro, edição e planilha.
-
-Nota: se algum dos arquivos declarar uma constante local `UNIDADES` (em vez de importar de `@/data/mock`), essa declaração será removida e substituída pela importação do mock para manter uma única fonte de verdade.
+VALIDATION
+----------
+After the change, run a TypeScript typecheck to ensure the file still compiles and the EditServico / ServicoExtraido types remain compatible.
+````
