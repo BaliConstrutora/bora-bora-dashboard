@@ -228,171 +228,36 @@ export interface UpdateServicoPatch {
 
 type ServicoUpdate = Partial<ServicoRow>;
 
-export async function updateServico(id: string, patch: UpdateServicoPatch): Promise<void> {
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData.user) throw new Error("Não autenticado");
-  const authUserId = userData.user.id;
-
-  // 1) Carrega serviço atual
-  const { data: atual, error: readErr } = await supabase
-    .from("servicos_extraidos")
-    .select("planilha_item_id, codigo_sugerido, quantidade_sugerida, descricao_sugerida, unidade_sugerida, categoria_sugerida")
-    .eq("id", id)
-    .single();
-  if (readErr) throw readErr;
-
-  const atualRow = atual as {
-    planilha_item_id: string | null;
-    codigo_sugerido: string | null;
-    quantidade_sugerida: number | string | null;
-    descricao_sugerida: string | null;
-    unidade_sugerida: string | null;
-    categoria_sugerida: string | null;
+export async function updateServico(
+  id: string,
+  updates: {
+    codigoSugerido?: string;
+    descricaoSugerida?: string;
+    quantidadeSugerida?: number;
+    unidadeSugerida?: string;
+    categoriaSugerida?: string;
+  }
+): Promise<void> {
+  const row: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
   };
 
-  const oldCodigo = (atualRow.codigo_sugerido ?? "").trim();
-  const oldQtd = num(atualRow.quantidade_sugerida);
-  const oldPlanilhaId = atualRow.planilha_item_id;
-
-  const newCodigo = patch.codigoSugerido !== undefined
-    ? (patch.codigoSugerido || "").trim()
-    : oldCodigo;
-  const newQtd = patch.quantidadeSugerida !== undefined
-    ? patch.quantidadeSugerida
-    : oldQtd;
-  const newDescricao = patch.descricaoSugerida !== undefined
-    ? (patch.descricaoSugerida || "")
-    : (atualRow.descricao_sugerida ?? "");
-  const newUnidade = patch.unidadeSugerida !== undefined
-    ? (patch.unidadeSugerida || "")
-    : (atualRow.unidade_sugerida ?? "");
-  const newCategoria = patch.categoriaSugerida !== undefined
-    ? (patch.categoriaSugerida || "")
-    : (atualRow.categoria_sugerida ?? "");
-
-  const codigoMudou = patch.codigoSugerido !== undefined && newCodigo !== oldCodigo;
-  const qtdMudou = patch.quantidadeSugerida !== undefined && newQtd !== oldQtd;
-
-  let novoPlanilhaItemId: string | null | undefined = undefined; // undefined = não altera
-
-  if (oldPlanilhaId && codigoMudou) {
-    // 2a) Subtrai do item antigo
-    const { data: itemAntigo, error: e1 } = await supabase
-      .from("planilha_items")
-      .select("id, quantidade, atestados_count")
-      .eq("id", oldPlanilhaId)
-      .maybeSingle();
-    if (e1) throw e1;
-    if (itemAntigo) {
-      const restQtd = num(itemAntigo.quantidade) - oldQtd;
-      const restCount = (itemAntigo.atestados_count ?? 0) - 1;
-      if (restQtd <= 0 || restCount <= 0) {
-        const { error: delErr } = await supabase
-          .from("planilha_items")
-          .delete()
-          .eq("id", itemAntigo.id);
-        if (delErr) throw delErr;
-      } else {
-        const { error: updErr } = await supabase
-          .from("planilha_items")
-          .update({ quantidade: restQtd, atestados_count: restCount })
-          .eq("id", itemAntigo.id);
-        if (updErr) throw updErr;
-      }
-    }
-
-    // 2b) Vincula ao novo código (se houver dados suficientes)
-    if (newCodigo && newQtd != null && Number.isFinite(newQtd) && newQtd > 0) {
-      const { data: existente, error: findErr } = await supabase
-        .from("planilha_items")
-        .select("id, quantidade, atestados_count")
-        .eq("user_id", authUserId)
-        .eq("codigo", newCodigo)
-        .maybeSingle();
-      if (findErr) throw findErr;
-      if (existente) {
-        const { error: updErr } = await supabase
-          .from("planilha_items")
-          .update({
-            quantidade: num(existente.quantidade) + newQtd,
-            atestados_count: (existente.atestados_count ?? 0) + 1,
-          })
-          .eq("id", existente.id);
-        if (updErr) throw updErr;
-        novoPlanilhaItemId = existente.id;
-      } else {
-        const { data: novo, error: insErr } = await supabase
-          .from("planilha_items")
-          .insert({
-            user_id: authUserId,
-            codigo: newCodigo,
-            categoria: newCategoria || "Sem categoria",
-            descricao: newDescricao,
-            unidade: newUnidade,
-            quantidade: newQtd,
-            atestados_count: 1,
-          })
-          .select("id")
-          .single();
-        if (insErr) throw insErr;
-        novoPlanilhaItemId = (novo as { id: string }).id;
-      }
-    } else {
-      novoPlanilhaItemId = null;
-    }
-  } else if (oldPlanilhaId && qtdMudou) {
-    // Só mudou quantidade → aplica delta no mesmo item
-    const { data: item, error: e1 } = await supabase
-      .from("planilha_items")
-      .select("id, quantidade, atestados_count")
-      .eq("id", oldPlanilhaId)
-      .maybeSingle();
-    if (e1) throw e1;
-    if (item) {
-      const novaQtd = num(item.quantidade) - oldQtd + newQtd;
-      if (novaQtd <= 0) {
-        const { error: delErr } = await supabase
-          .from("planilha_items")
-          .delete()
-          .eq("id", item.id);
-        if (delErr) throw delErr;
-        novoPlanilhaItemId = null;
-      } else {
-        const updates: Partial<PlanilhaRow> = { quantidade: novaQtd };
-        if (patch.descricaoSugerida !== undefined) updates.descricao = newDescricao;
-        if (patch.unidadeSugerida !== undefined) updates.unidade = newUnidade;
-        if (patch.categoriaSugerida !== undefined && newCategoria) updates.categoria = newCategoria;
-        const { error: updErr } = await supabase
-          .from("planilha_items")
-          .update(updates as never)
-          .eq("id", item.id);
-        if (updErr) throw updErr;
-      }
-    }
-  } else if (oldPlanilhaId) {
-    // Só descricao/unidade/categoria mudaram → propaga no item vinculado
-    const updates: Partial<PlanilhaRow> = {};
-    if (patch.descricaoSugerida !== undefined) updates.descricao = newDescricao;
-    if (patch.unidadeSugerida !== undefined) updates.unidade = newUnidade;
-    if (patch.categoriaSugerida !== undefined && newCategoria) updates.categoria = newCategoria;
-    if (Object.keys(updates).length > 0) {
-      const { error: updErr } = await supabase
-        .from("planilha_items")
-        .update(updates as never)
-        .eq("id", oldPlanilhaId);
-      if (updErr) throw updErr;
-    }
+  if (updates.codigoSugerido !== undefined) {
+    row.codigo_sugerido = updates.codigoSugerido;
+    row.planilha_item_id = null;
+    row.status = "pendente";
   }
 
-  // 3) Aplica UPDATE final no serviço
-  const row: ServicoUpdate = {};
-  if (patch.codigoSugerido !== undefined) row.codigo_sugerido = patch.codigoSugerido || null;
-  if (patch.descricaoSugerida !== undefined) row.descricao_sugerida = patch.descricaoSugerida || null;
-  if (patch.quantidadeSugerida !== undefined) row.quantidade_sugerida = patch.quantidadeSugerida;
-  if (patch.unidadeSugerida !== undefined) row.unidade_sugerida = patch.unidadeSugerida || null;
-  if (patch.categoriaSugerida !== undefined) row.categoria_sugerida = patch.categoriaSugerida || null;
-  if (novoPlanilhaItemId !== undefined) row.planilha_item_id = novoPlanilhaItemId;
-  const { error } = await supabase.from("servicos_extraidos").update(row as never).eq("id", id);
+  if (updates.descricaoSugerida !== undefined) row.descricao_sugerida = updates.descricaoSugerida;
+  if (updates.quantidadeSugerida !== undefined) row.quantidade_sugerida = updates.quantidadeSugerida;
+  if (updates.unidadeSugerida !== undefined) row.unidade_sugerida = updates.unidadeSugerida;
+  if (updates.categoriaSugerida !== undefined) row.categoria_sugerida = updates.categoriaSugerida;
+
+  const { error } = await supabase
+    .from("servicos_extraidos")
+    .update(row)
+    .eq("id", id);
+
   if (error) throw error;
 }
 
