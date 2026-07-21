@@ -160,6 +160,77 @@ export async function deleteAtestado(id: string) {
   if (error) throw error;
 }
 
+export interface UpdateAtestadoPatch {
+  numeroCat?: string;
+  contratante?: string;
+  cnpjContratante?: string;
+  tipoContratante?: TipoContratante;
+  numeroContrato?: string;
+  numeroPregao?: string;
+  localExecucao?: string;
+  finalidade?: FinalidadeAtestado;
+  valorContrato?: number;
+  dataInicio?: string;
+  dataFim?: string;
+  dataEmissao?: string;
+  respTecnico?: string;
+  registroCreaRt?: string;
+  artNumero?: string;
+  status?: AtestadoStatus;
+  descricao?: string;
+  observacoes?: string;
+}
+
+type AtestadoUpdate = Partial<AtestadoRow>;
+
+export async function updateAtestado(id: string, patch: UpdateAtestadoPatch): Promise<void> {
+  const row: AtestadoUpdate = {};
+  if (patch.numeroCat !== undefined) {
+    row.numero_cat = patch.numeroCat || null;
+    row.numero = patch.numeroCat;
+  }
+  if (patch.contratante !== undefined) row.contratante = patch.contratante;
+  if (patch.cnpjContratante !== undefined) row.cnpj_contratante = patch.cnpjContratante || null;
+  if (patch.tipoContratante !== undefined) row.tipo_contratante = patch.tipoContratante;
+  if (patch.numeroContrato !== undefined) row.numero_contrato = patch.numeroContrato || null;
+  if (patch.numeroPregao !== undefined) row.numero_pregao = patch.numeroPregao || null;
+  if (patch.localExecucao !== undefined) row.local_execucao = patch.localExecucao || null;
+  if (patch.finalidade !== undefined) row.finalidade = patch.finalidade;
+  if (patch.valorContrato !== undefined) row.valor_contrato = patch.valorContrato;
+  if (patch.dataInicio !== undefined) row.data_inicio = patch.dataInicio;
+  if (patch.dataFim !== undefined) row.data_fim = patch.dataFim;
+  if (patch.dataEmissao !== undefined) row.data_emissao = patch.dataEmissao || null;
+  if (patch.respTecnico !== undefined) row.resp_tecnico = patch.respTecnico;
+  if (patch.registroCreaRt !== undefined) row.registro_crea_rt = patch.registroCreaRt || null;
+  if (patch.artNumero !== undefined) row.art_numero = patch.artNumero || null;
+  if (patch.status !== undefined) row.status = patch.status;
+  if (patch.descricao !== undefined) row.descricao = patch.descricao;
+  if (patch.observacoes !== undefined) row.observacoes = patch.observacoes || null;
+  const { error } = await supabase.from("atestados").update(row as never).eq("id", id);
+  if (error) throw error;
+}
+
+export interface UpdateServicoPatch {
+  codigoSugerido?: string;
+  descricaoSugerida?: string;
+  quantidadeSugerida?: number;
+  unidadeSugerida?: string;
+  categoriaSugerida?: string;
+}
+
+type ServicoUpdate = Partial<ServicoRow>;
+
+export async function updateServico(id: string, patch: UpdateServicoPatch): Promise<void> {
+  const row: ServicoUpdate = {};
+  if (patch.codigoSugerido !== undefined) row.codigo_sugerido = patch.codigoSugerido || null;
+  if (patch.descricaoSugerida !== undefined) row.descricao_sugerida = patch.descricaoSugerida || null;
+  if (patch.quantidadeSugerida !== undefined) row.quantidade_sugerida = patch.quantidadeSugerida;
+  if (patch.unidadeSugerida !== undefined) row.unidade_sugerida = patch.unidadeSugerida || null;
+  if (patch.categoriaSugerida !== undefined) row.categoria_sugerida = patch.categoriaSugerida || null;
+  const { error } = await supabase.from("servicos_extraidos").update(row as never).eq("id", id);
+  if (error) throw error;
+}
+
 export interface NewAtestadoPayload {
   atestado: {
     user_id: string; numero: string; contratante: string; descricao: string;
