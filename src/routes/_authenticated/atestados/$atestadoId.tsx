@@ -214,7 +214,7 @@ function AtestadoDetailPage() {
     setSendingIds((prev) => new Set(prev).add(s.id));
     try {
       const userId = await getCurrentUserId();
-      await sendServicoToPlanilha(userId, s.id, {
+      const result = await sendServicoToPlanilha(userId, s.id, {
         codigo: s.codigoSugerido,
         categoria: s.categoriaSugerida ?? "Outros",
         descricao: s.descricaoSugerida,
@@ -225,7 +225,12 @@ function AtestadoDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["planilha"] });
       queryClient.invalidateQueries({ queryKey: ["categorias-planilha"] });
       queryClient.invalidateQueries({ queryKey: ["categorias-personalizadas"] });
-      toast.success("Serviço enviado para a Planilha de Quantidades!");
+      if (result.fresagem && result.childCodigo && result.childQuantidade != null) {
+        const qtd = result.childQuantidade.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+        toast.success(`✓ Criados automaticamente: ${result.mainCodigo} (m²) e ${result.childCodigo} (m³ = ${qtd} m³)`);
+      } else {
+        toast.success("Serviço enviado para a Planilha de Quantidades!");
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
