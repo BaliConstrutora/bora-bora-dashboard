@@ -37,6 +37,9 @@ type PlanilhaRow = {
   quantidade: number | string; valor_unitario: number | string | null;
   valor_total: number | string | null; observacoes: string | null;
   atestados_count: number | null;
+  item_pai_id: string | null;
+  fator_conversao: number | string | null;
+  unidade_origem: string | null;
   created_at: string; updated_at: string;
 };
 
@@ -128,6 +131,9 @@ export function mapPlanilhaItem(r: PlanilhaRow): PlanilhaItem {
     valorTotal: r.valor_total != null ? num(r.valor_total) : undefined,
     atestadosCount: r.atestados_count ?? 0,
     observacoes: r.observacoes ?? undefined,
+    itemPaiId: r.item_pai_id ?? null,
+    fatorConversao: r.fator_conversao != null ? num(r.fator_conversao) : null,
+    unidadeOrigem: r.unidade_origem ?? null,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
 }
