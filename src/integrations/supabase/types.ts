@@ -188,10 +188,13 @@ export type Database = {
           codigo: string
           created_at: string
           descricao: string
+          fator_conversao: number | null
           id: string
+          item_pai_id: string | null
           observacoes: string | null
           quantidade: number
           unidade: string
+          unidade_origem: string | null
           updated_at: string
           user_id: string
           valor_total: number | null
@@ -203,10 +206,13 @@ export type Database = {
           codigo: string
           created_at?: string
           descricao: string
+          fator_conversao?: number | null
           id?: string
+          item_pai_id?: string | null
           observacoes?: string | null
           quantidade?: number
           unidade: string
+          unidade_origem?: string | null
           updated_at?: string
           user_id: string
           valor_total?: number | null
@@ -218,16 +224,27 @@ export type Database = {
           codigo?: string
           created_at?: string
           descricao?: string
+          fator_conversao?: number | null
           id?: string
+          item_pai_id?: string | null
           observacoes?: string | null
           quantidade?: number
           unidade?: string
+          unidade_origem?: string | null
           updated_at?: string
           user_id?: string
           valor_total?: number | null
           valor_unitario?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "planilha_items_item_pai_id_fkey"
+            columns: ["item_pai_id"]
+            isOneToOne: false
+            referencedRelation: "planilha_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       servicos_extraidos: {
         Row: {
