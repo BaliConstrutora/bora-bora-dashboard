@@ -259,6 +259,7 @@ function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
   onConfirm: (id: string) => void;
   onIgnore: (id: string) => void;
   onUpdate: (id: string, field: keyof ServicoExtraido, value: string | number) => void;
+  categorias: string[];
 }) {
   const isPendente = servico.status === "pendente";
   const isConfirmado = servico.status === "confirmado";
