@@ -109,6 +109,7 @@ export interface Atestado {
   localExecucao?: string;
   registroCreaRt?: string;
   finalidade?: FinalidadeAtestado;
+  ordem?: number | null;
   createdAt: string;
   updatedAt: string;
 }
