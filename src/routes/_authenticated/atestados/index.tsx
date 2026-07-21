@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Plus, Search, FileCheck, MoreHorizontal, Trash2, Loader2, FileText } from "lucide-react";
 import type { AtestadoStatus } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listAtestados, deleteAtestado } from "@/lib/atestados-api";
+import { listAtestados, deleteAtestado, updateAtestadoOrdem } from "@/lib/atestados-api";
 import { PdfViewerDialog } from "@/components/pdf-viewer-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,87 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { useEffect, useRef } from "react";
+
+function OrdemBadge({ id, ordem }: { id: string; ordem: number }) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(String(ordem));
+  const inputRef = useRef<HTMLInputElement>(null);
+  const savedRef = useRef(false);
+
+  useEffect(() => {
+    if (!editing) setValue(String(ordem));
+  }, [ordem, editing]);
+
+  const mut = useMutation({
+    mutationFn: (novo: number) => updateAtestadoOrdem(id, novo),
+    onSuccess: () => {
+      toast.success("Sequência atualizada!");
+      queryClient.invalidateQueries({ queryKey: ["atestados"] });
+      setEditing(false);
+    },
+    onError: () => {
+      toast.error("Não foi possível atualizar a sequência.");
+      setValue(String(ordem));
+    },
+  });
+
+  function commit() {
+    if (savedRef.current) return;
+    savedRef.current = true;
+    const n = parseInt(value, 10);
+    if (!Number.isFinite(n) || n <= 0 || n === ordem) {
+      setValue(String(ordem));
+      setEditing(false);
+      return;
+    }
+    mut.mutate(n);
+  }
+
+  function cancel() {
+    savedRef.current = true;
+    setValue(String(ordem));
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <Input
+          ref={inputRef}
+          type="number"
+          min={1}
+          autoFocus
+          disabled={mut.isPending}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); commit(); }
+            if (e.key === "Escape") { e.preventDefault(); cancel(); }
+          }}
+          className="h-7 w-16 px-2 text-xs"
+        />
+        {mut.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+      </div>
+    );
+  }
+
+  return (
+    <Badge
+      variant="outline"
+      className="cursor-pointer hover:bg-muted inline-flex items-center gap-1"
+      onClick={(e) => {
+        e.stopPropagation();
+        savedRef.current = false;
+        setEditing(true);
+      }}
+    >
+      {mut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : `AT-${String(ordem).padStart(2, "0")}`}
+    </Badge>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/atestados/")({
   head: () => ({
@@ -57,15 +138,15 @@ function AtestadosListPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [pdfAtestado, setPdfAtestado] = useState<{ id: string; numero: string; path: string } | null>(null);
 
-  // Mapa fixo: id → número sequencial baseado na data de criação (crescente).
-  // Garante que AT-01 é sempre o primeiro criado, independente de filtros.
-  const seqMap = new Map(
-    [...atestados]
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      .map((a, i) => [a.id, i + 1] as const),
-  );
+  const sorted = [...atestados].sort((a, b) => {
+    const oa = a.ordem ?? Number.MAX_SAFE_INTEGER;
+    const ob = b.ordem ?? Number.MAX_SAFE_INTEGER;
+    if (oa !== ob) return oa - ob;
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+  const fallbackSeq = new Map(sorted.map((a, i) => [a.id, i + 1] as const));
 
-  const filtered = atestados.filter((a) => {
+  const filtered = sorted.filter((a) => {
     const s = search.toLowerCase();
     const matchSearch =
       !search ||
@@ -163,11 +244,11 @@ function AtestadosListPage() {
                   filtered.map((a) => {
                     const sc = statusConfig[a.status];
                     const displayNumero = a.numeroCat ?? a.numero;
-                    const seq = seqMap.get(a.id) ?? 0;
+                    const seq = a.ordem ?? fallbackSeq.get(a.id) ?? 0;
                     return (
                       <TableRow key={a.id}>
                         <TableCell>
-                          <Badge variant="outline">{`AT-${String(seq).padStart(2, "0")}`}</Badge>
+                          <OrdemBadge id={a.id} ordem={seq} />
                         </TableCell>
                         <TableCell>
                           <Link
