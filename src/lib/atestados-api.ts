@@ -413,3 +413,147 @@ export async function deleteAtestadoPdf(path: string): Promise<void> {
   const { error } = await supabase.storage.from(BUCKET).remove([path]);
   if (error) throw error;
 }
+
+// ─────────────────────────────────────────────────────────────────
+
+// ADICIONE ESTAS FUNÇÕES AO FINAL DO ARQUIVO src/lib/atestados-api.ts
+
+// ─────────────────────────────────────────────────────────────────
+
+// Busca todas as categorias únicas já cadastradas na Planilha de Quantidades
+
+export async function listCategoriasExistentes(): Promise<string[]> {
+
+  const { data, error } = await supabase
+
+    .from("planilha_itens")
+
+    .select("categoria");
+
+  if (error) throw error;
+
+  const unique = [
+
+    ...new Set((data ?? []).map((d: { categoria: string }) => d.categoria).filter(Boolean)),
+
+  ].sort() as string[];
+
+  return unique;
+
+}
+
+// Envia um serviço do atestado para a Planilha de Quantidades
+
+export async function sendServicoToPlanilha(
+
+  servicoId: string,
+
+  payload: {
+
+    codigo: string;
+
+    categoria: string;
+
+    descricao: string;
+
+    quantidade: number;
+
+    unidade: string;
+
+  }
+
+): Promise<void> {
+
+  // Verifica se já existe um item com o mesmo código na planilha
+
+  const { data: existing } = await supabase
+
+    .from("planilha_itens")
+
+    .select("id, quantidade, atestados_count")
+
+    .eq("codigo", payload.codigo)
+
+    .maybeSingle();
+
+  let planilhaItemId: string;
+
+  if (existing) {
+
+    // Atualiza item existente somando a quantidade
+
+    const { error } = await supabase
+
+      .from("planilha_itens")
+
+      .update({
+
+        quantidade: (existing.quantidade ?? 0) + payload.quantidade,
+
+        atestados_count: (existing.atestados_count ?? 0) + 1,
+
+        updated_at: new Date().toISOString(),
+
+      })
+
+      .eq("id", existing.id);
+
+    if (error) throw error;
+
+    planilhaItemId = existing.id;
+
+  } else {
+
+    // Cria novo item na planilha
+
+    const { data: newItem, error } = await supabase
+
+      .from("planilha_itens")
+
+      .insert({
+
+        codigo: payload.codigo,
+
+        categoria: payload.categoria,
+
+        descricao: payload.descricao,
+
+        quantidade: payload.quantidade,
+
+        unidade: payload.unidade,
+
+        atestados_count: 1,
+
+      })
+
+      .select("id")
+
+      .single();
+
+    if (error) throw error;
+
+    planilhaItemId = newItem.id;
+
+  }
+
+  // Atualiza o serviço como confirmado e vincula ao item da planilha
+
+  const { error: servicoError } = await supabase
+
+    .from("servicos_extraidos")
+
+    .update({
+
+      status: "confirmado",
+
+      planilha_item_id: planilhaItemId,
+
+      updated_at: new Date().toISOString(),
+
+    })
+
+    .eq("id", servicoId);
+
+  if (servicoError) throw servicoError;
+
+}

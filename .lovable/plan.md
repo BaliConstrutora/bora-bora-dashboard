@@ -1,7 +1,11 @@
-A categoria "Terraplaagem" existe na tabela `categorias_personalizadas` do banco (id: `798a4bcb-58ba-4de7-9658-de5bd8e51906`). Não há itens da planilha nem serviços extraídos atualmente vinculados a essa categoria, então a correção é apenas renomear o registro.
+Add the two functions provided by the user to the end of `src/lib/atestados-api.ts` without modifying any existing code.
 
-### Plano
-1. **Atualizar o registro no banco** — executar `UPDATE categorias_personalizadas SET nome = 'Terraplanagem' WHERE id = '798a4bcb-58ba-4de7-9658-de5bd8e51906'`.
-2. **Verificar** — confirmar que o nome foi atualizado e que não há outros registros com a grafia antiga.
+1. `listCategoriasExistentes()` — returns a sorted list of unique categories already registered in `planilha_itens`.
+2. `sendServicoToPlanilha(servicoId, payload)` — upserts a `planilha_itens` row by code (summing quantity and incrementing `atestados_count` if it exists, otherwise inserting a new row), then updates the matching `servicos_extraidos` row to status `confirmado` and links it via `planilha_item_id`.
 
-Nenhuma alteração de código é necessária, pois a lista de categorias personalizadas é carregada dinamicamente do banco.
+Technical details
+- File target: `src/lib/atestados-api.ts`
+- Change type: append-only at end of file
+- Verification: run TypeScript typecheck (`bunx tsc --noEmit`) to ensure no duplicate identifiers or type errors are introduced.
+
+Note: the provided `sendServicoToPlanilha` does not pass `user_id` to the insert; this will be added exactly as provided, but may need a follow-up fix if runtime RLS/requires it.
