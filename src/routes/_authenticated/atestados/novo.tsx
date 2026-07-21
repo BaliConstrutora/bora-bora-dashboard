@@ -254,7 +254,7 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-function ServiceCard({ servico, onConfirm, onIgnore, onUpdate }: {
+function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
   servico: ServicoExtraido;
   onConfirm: (id: string) => void;
   onIgnore: (id: string) => void;
