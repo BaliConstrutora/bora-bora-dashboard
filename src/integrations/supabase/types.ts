@@ -95,6 +95,7 @@ export type Database = {
           numero_contrato: string | null
           numero_pregao: string | null
           observacoes: string | null
+          ordem: number | null
           registro_crea_rt: string | null
           resp_tecnico: string
           status: string
@@ -121,6 +122,7 @@ export type Database = {
           numero_contrato?: string | null
           numero_pregao?: string | null
           observacoes?: string | null
+          ordem?: number | null
           registro_crea_rt?: string | null
           resp_tecnico?: string
           status?: string
@@ -147,6 +149,7 @@ export type Database = {
           numero_contrato?: string | null
           numero_pregao?: string | null
           observacoes?: string | null
+          ordem?: number | null
           registro_crea_rt?: string | null
           resp_tecnico?: string
           status?: string
