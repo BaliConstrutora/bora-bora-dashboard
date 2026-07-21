@@ -1,22 +1,10 @@
-## Plan: Handle duplicate update functions in `src/lib/atestados-api.ts`
+Substituir `src/routes/_authenticated/atestados/index.tsx` pela nova versão fornecida.
 
-### Current state
-`src/lib/atestados-api.ts` already exports two functions that match the requested behavior:
+## Mudança principal
+- Numeração sequencial (AT-01, AT-02...) agora é **estável**: baseada na ordem de criação (`createdAt` crescente), independente de filtros. Hoje ela usa o índice do array filtrado, então mudar filtro/busca renumera os itens.
+- Implementação: `seqMap = Map<id, número>` construído a partir de todos os atestados ordenados por `createdAt`, e cada linha usa `seqMap.get(a.id)`.
 
-- `updateAtestado(id, patch: UpdateAtestadoPatch)` (lines ~186-211)
-  - Maps all the same camelCase fields to snake_case columns.
-  - Syncs `numero_cat` with `numero`.
-  - Updates the `atestados` table by `id`.
-
-- `updateServico(id, patch: UpdateServicoPatch)` (lines ~223-232)
-  - Maps the same service fields to `servicos_extraidos` columns.
-  - Updates by service `id`.
-
-### Decision
-Per your clarification, keep the existing functions and skip adding duplicates.
-
-### Action
-No file changes required. The build remains valid and the detail page (`$atestadoId.tsx`) can continue importing and using the existing `updateAtestado` and `updateServico` exports.
-
-### Verification
-Run a TypeScript typecheck to confirm no duplicate-identifier errors and that the existing exports are still consumed correctly by the detail page.
+## Detalhes técnicos
+- Restante do arquivo (KPIs, filtros, tabela, PdfViewerDialog, AlertDialog) mantém o comportamento atual.
+- O texto colado veio com JSX removido pelo transporte; vou reconstruir o markup preservando o mesmo layout já existente e apenas trocando a lógica de numeração para usar `seqMap`.
+- `PdfViewerDialog`, `listAtestados`, `deleteAtestado` já existem e são compatíveis — nenhuma outra alteração necessária.

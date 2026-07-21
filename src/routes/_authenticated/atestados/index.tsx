@@ -57,6 +57,14 @@ function AtestadosListPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [pdfAtestado, setPdfAtestado] = useState<{ id: string; numero: string; path: string } | null>(null);
 
+  // Mapa fixo: id → número sequencial baseado na data de criação (crescente).
+  // Garante que AT-01 é sempre o primeiro criado, independente de filtros.
+  const seqMap = new Map(
+    [...atestados]
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .map((a, i) => [a.id, i + 1] as const),
+  );
+
   const filtered = atestados.filter((a) => {
     const s = search.toLowerCase();
     const matchSearch =
@@ -152,13 +160,14 @@ function AtestadosListPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((a, index) => {
+                  filtered.map((a) => {
                     const sc = statusConfig[a.status];
                     const displayNumero = a.numeroCat ?? a.numero;
+                    const seq = seqMap.get(a.id) ?? 0;
                     return (
                       <TableRow key={a.id}>
                         <TableCell>
-                          <Badge variant="outline">{`AT-${String(index + 1).padStart(2, "0")}`}</Badge>
+                          <Badge variant="outline">{`AT-${String(seq).padStart(2, "0")}`}</Badge>
                         </TableCell>
                         <TableCell>
                           <Link
