@@ -14,7 +14,7 @@ export const CATEGORIAS_PADRAO = [
   "Outros",
 ];
 
-export const UNIDADES = ["m","m²","m³","t","kg","vb","un","l","h","mês","km"];
+export const UNIDADES = ["m","m²","m³","t","kg","vb","un","l","h","mês","km","txkm","m³xkm"];
 
 export const mockPlanilhaItens: PlanilhaItem[] = [
   { id: "p1", codigo: "1.1", categoria: "Serviços Preliminares", descricao: "Limpeza e preparo do terreno", quantidade: 18400, unidade: "m²", atestadosCount: 2, createdAt: "2024-01-10", updatedAt: "2024-03-15" },
