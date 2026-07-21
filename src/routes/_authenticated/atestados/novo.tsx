@@ -351,6 +351,12 @@ function NovoAtestadoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractAtestadoFromPdf);
 
+  const { data: categoriasDB = [] } = useQuery({
+    queryKey: ["categorias-existentes"],
+    queryFn: listCategoriasExistentes,
+  });
+  const todasCategorias = [...new Set([...CATEGORIAS_PADRAO, ...categoriasDB])].sort();
+
   const form = useForm<AtestadoForm>({
     resolver: zodResolver(atestadoSchema),
     defaultValues: { status: "parcial", contratante: "", descricao: "", valorContrato: "", dataInicio: "", dataFim: "", respTecnico: "", numeroCat: "", cnpjContratante: "", numeroContrato: "", numeroPregao: "", localExecucao: "", registroCreaRt: "" },
