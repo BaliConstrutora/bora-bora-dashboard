@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useState } from "react";
-import { Plus, Search, Pencil, Trash2, X, Check, Table2, Layers, FileCheck, Loader2, ArrowRight } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, X, Check, Table2, Layers, FileCheck, Loader2, ArrowRight, Link2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { PlanilhaItem } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { listPlanilhaItems, savePlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId, listAtestados, getAtestadosByPlanilhaItem } from "@/lib/atestados-api";
 
 export const Route = createFileRoute("/_authenticated/atestados/planilha")({
@@ -140,6 +141,10 @@ function PlanilhaPage() {
   });
 
   const categoriesInFiltered = [...new Set(filtered.map((i) => i.categoria))].sort();
+  const childByParent = new Map<string, PlanilhaItem>();
+  itens.forEach((i) => { if (i.itemPaiId) childByParent.set(i.itemPaiId, i); });
+  const codigoById = new Map<string, string>();
+  itens.forEach((i) => codigoById.set(i.id, i.codigo));
   const totalItens = itens.length;
   const totalCats = new Set(itens.map((i) => i.categoria)).size;
   const vinculados = itens.filter((i) => (i.atestadosCount ?? 0) > 0).length;
@@ -280,26 +285,77 @@ function PlanilhaPage() {
                         <TableRow className="bg-muted/40 hover:bg-muted/40">
                           <TableCell colSpan={7} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{cat}</TableCell>
                         </TableRow>
-                        {filtered.filter((i) => i.categoria === cat).map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="font-mono text-xs">{item.codigo}</TableCell>
-                            <TableCell>{item.descricao}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{item.categoria}</TableCell>
-                            <TableCell className="text-right tabular-nums">{item.quantidade.toLocaleString("pt-BR")}</TableCell>
-                            <TableCell className="text-xs">{item.unidade}</TableCell>
-                            <TableCell>
-                              {(item.atestadosCount ?? 0) > 0
-                                ? <AtestadosPopover itemId={item.id} count={item.atestadosCount ?? 0} seqMap={seqMap} />
-                                : <span className="text-muted-foreground text-xs">—</span>}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex justify-end gap-1">
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}><Pencil className="h-3.5 w-3.5" /></Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {filtered.filter((i) => i.categoria === cat).map((item) => {
+                          const isAuto = !!item.itemPaiId;
+                          const child = childByParent.get(item.id);
+                          const paiCodigo = item.itemPaiId ? codigoById.get(item.itemPaiId) : undefined;
+                          return (
+                            <TableRow key={item.id} className={isAuto ? "bg-amber-50/40" : undefined}>
+                              <TableCell className="font-mono text-xs">
+                                <div className="flex items-center gap-1.5">
+                                  {isAuto && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Link2 className="h-3 w-3 text-amber-600" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="text-xs">Vinculado ao item {paiCodigo ?? "pai"}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                  <span>{item.codigo}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>{item.descricao}</div>
+                                {child && (
+                                  <div className="text-[11px] text-amber-700 mt-0.5">
+                                    → gera {child.codigo} em {child.unidade} automaticamente
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{item.categoria}</TableCell>
+                              <TableCell className="text-right tabular-nums">{item.quantidade.toLocaleString("pt-BR")}</TableCell>
+                              <TableCell className="text-xs">{item.unidade}</TableCell>
+                              <TableCell>
+                                {isAuto ? (
+                                  <Badge className="text-[10px] bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-300">
+                                    Auto {item.unidade}
+                                  </Badge>
+                                ) : (item.atestadosCount ?? 0) > 0 ? (
+                                  <AtestadosPopover itemId={item.id} count={item.atestadosCount ?? 0} seqMap={seqMap} />
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end gap-1">
+                                  {isAuto ? (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="text-[10px] text-muted-foreground italic px-2">
+                                            gerado auto.
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="text-xs">Item gerado automaticamente a partir de {paiCodigo ?? "item pai"}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  ) : (
+                                    <>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteId(item.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </Fragment>
                     ))
                   )}
