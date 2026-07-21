@@ -255,7 +255,7 @@ export async function updateServico(
 
   const { error } = await supabase
     .from("servicos_extraidos")
-    .update(row)
+    .update(row as never)
     .eq("id", id);
 
   if (error) throw error;
