@@ -196,7 +196,8 @@ function AtestadoDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["atestado", atestadoId] });
       queryClient.invalidateQueries({ queryKey: ["atestados"] });
       queryClient.invalidateQueries({ queryKey: ["planilha"] });
-      queryClient.invalidateQueries({ queryKey: ["categorias-existentes"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-personalizadas"] });
       toast.success("Atestado atualizado com sucesso!");
       setIsEditing(false);
       setEditForm(null);
@@ -222,7 +223,8 @@ function AtestadoDetailPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["atestado", atestadoId] });
       queryClient.invalidateQueries({ queryKey: ["planilha"] });
-      queryClient.invalidateQueries({ queryKey: ["categorias-existentes"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-personalizadas"] });
       toast.success("Serviço enviado para a Planilha de Quantidades!");
     } catch (e) {
       toast.error((e as Error).message);
