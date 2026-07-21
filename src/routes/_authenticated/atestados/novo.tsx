@@ -18,9 +18,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
-import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems, upsertPlanilhaItem } from "@/lib/atestados-api";
+import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems, upsertPlanilhaItem, listCategoriasExistentes } from "@/lib/atestados-api";
 import { extractAtestadoFromPdf, type ExtractedAtestado } from "@/lib/atestados-ai.functions";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/atestados/novo")({
   head: () => ({ meta: [{ title: "Cadastro de Atestado — Bora Bora" }] }),
