@@ -1,26 +1,24 @@
-## Diagnóstico (verificado no banco)
+Objetivo: expandir a lista de unidades de medida do módulo Atestados com duas novas opções para serviços de transporte e movimentação: **txkm** (tonelada por quilômetro) e **m³xkm** (metro cúbico por quilômetro).
 
-- `planilha_items` está **vazia** — zero linhas, zero categorias. Por isso o merge com `listCategoriasExistentes` não adiciona nada.
-- `categorias_personalizadas` contém exatamente **Drenagem, Terraplanagem, Transportes** — que é onde essas categorias vivem hoje.
-- A função `listCategoriasPersonalizadas` já existe em `atestados-api.ts` e lê dessa tabela.
+Alterações propostas:
 
-A instrução original aponta para `planilha_itens` (nome errado — a tabela real é `planilha_items`) e ainda assim, mesmo corrigindo o nome, não resolveria: a tabela está vazia.
+1. **src/data/mock.ts**
+   - Atualizar o array `UNIDADES` para:
+     ```ts
+     export const UNIDADES = ["m", "m²", "m³", "t", "kg", "vb", "un", "l", "h", "mês", "km", "txkm", "m³xkm"];
+     ```
 
-## Plano
+2. **src/routes/_authenticated/atestados/novo.tsx**
+   - Como o arquivo já importa `UNIDADES` de `@/data/mock`, a lista será automaticamente atualizada. Nenhuma alteração adicional necessária, apenas garantir que o dropdown de unidade do `ServiceCard` use o array importado.
 
-1. **`src/lib/atestados-api.ts`** — adicionar log de erro em `listCategoriasExistentes` (mantendo `planilha_items`, o nome correto) e retornar `[]` no erro em vez de lançar, para o dropdown nunca ficar travado por uma leitura ruim.
+3. **src/routes/_authenticated/atestados/$atestadoId.tsx**
+   - O arquivo já importa `UNIDADES` de `@/data/mock`, portanto a atualização do array central reflete aqui automaticamente. Verificar se há alguma declaração local redundante.
 
-2. **`src/routes/_authenticated/atestados/novo.tsx`** — passar a mesclar **três** fontes em `todasCategorias`:
-   - `CATEGORIAS_PADRAO` (defaults hardcoded já usados)
-   - `listCategoriasPersonalizadas()` — nova query, `queryKey: ["categorias-personalizadas"]` (é onde Drenagem/Terraplanagem/Transportes estão)
-   - `listCategoriasExistentes()` — mantida com `queryKey: ["categorias-planilha"]`, `staleTime: 0` (fica útil quando `planilha_items` tiver dados)
+4. **src/routes/_authenticated/atestados/planilha.tsx**
+   - O arquivo já importa `UNIDADES` de `@/data/mock`, então também reflete a atualização central. Verificar se há declaração local redundante.
 
-   Merge → `new Set([...])` → `sort()` → passar para `<ServiceCard categorias={todasCategorias} />` (a prop já existe).
+Validação:
+- Typecheck (`bunx tsc --noEmit` ou `tsgo`) para garantir que não há quebra de tipos.
+- Verificar visualmente os dropdowns de unidade nas páginas de cadastro, edição e planilha.
 
-3. **`src/routes/_authenticated/atestados/$atestadoId.tsx`** — mesma mescla tripla no modo de edição, para consistência entre as duas telas.
-
-Sem migração de banco; sem mudança de RLS; sem mudar o nome da tabela.
-
-## Resultado esperado
-
-O dropdown de categoria em Novo Atestado e no detalhe passa a listar: defaults + Drenagem + Terraplanagem + Transportes (e qualquer outra que o usuário criar em `categorias_personalizadas` ou que passe a existir em `planilha_items`), ordenado alfabeticamente.
+Nota: se algum dos arquivos declarar uma constante local `UNIDADES` (em vez de importar de `@/data/mock`), essa declaração será removida e substituída pela importação do mock para manter uma única fonte de verdade.
