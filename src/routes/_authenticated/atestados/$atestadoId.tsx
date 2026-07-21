@@ -10,6 +10,7 @@ import {
   sendServicoToPlanilha,
   listCategoriasExistentes,
   getCurrentUserId,
+  listPlanilhaItems,
 } from "@/lib/atestados-api";
 import { PdfViewerDialog } from "@/components/pdf-viewer-dialog";
 import { Button } from "@/components/ui/button";
@@ -138,6 +139,12 @@ function AtestadoDetailPage() {
   });
   const todasCategorias = [...new Set([...CATEGORIAS_PADRAO, ...categoriasDB])].sort();
 
+  const { data: planilhaItens = [] } = useQuery({
+    queryKey: ["planilha"],
+    queryFn: listPlanilhaItems,
+  });
+  const planilhaIds = new Set(planilhaItens.map((p) => p.id));
+
   const [pdfOpen, setPdfOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
@@ -205,7 +212,7 @@ function AtestadoDetailPage() {
         unidade: s.unidadeSugerida ?? "m",
       });
       queryClient.invalidateQueries({ queryKey: ["atestado", atestadoId] });
-      queryClient.invalidateQueries({ queryKey: ["planilha-itens"] });
+      queryClient.invalidateQueries({ queryKey: ["planilha"] });
       queryClient.invalidateQueries({ queryKey: ["categorias-existentes"] });
       toast.success("Serviço enviado para a Planilha de Quantidades!");
     } catch (e) {
