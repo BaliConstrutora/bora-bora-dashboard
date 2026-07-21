@@ -10,6 +10,7 @@ import {
   sendServicoToPlanilha,
   listCategoriasExistentes,
   getCurrentUserId,
+  listPlanilhaItems,
 } from "@/lib/atestados-api";
 import { PdfViewerDialog } from "@/components/pdf-viewer-dialog";
 import { Button } from "@/components/ui/button";
@@ -138,6 +139,12 @@ function AtestadoDetailPage() {
   });
   const todasCategorias = [...new Set([...CATEGORIAS_PADRAO, ...categoriasDB])].sort();
 
+  const { data: planilhaItens = [] } = useQuery({
+    queryKey: ["planilha"],
+    queryFn: listPlanilhaItems,
+  });
+  const planilhaIds = new Set(planilhaItens.map((p) => p.id));
+
   const [pdfOpen, setPdfOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
@@ -205,7 +212,7 @@ function AtestadoDetailPage() {
         unidade: s.unidadeSugerida ?? "m",
       });
       queryClient.invalidateQueries({ queryKey: ["atestado", atestadoId] });
-      queryClient.invalidateQueries({ queryKey: ["planilha-itens"] });
+      queryClient.invalidateQueries({ queryKey: ["planilha"] });
       queryClient.invalidateQueries({ queryKey: ["categorias-existentes"] });
       toast.success("Serviço enviado para a Planilha de Quantidades!");
     } catch (e) {
@@ -627,12 +634,12 @@ function AtestadoDetailPage() {
                             <TableCell>
                               {titulo ? (
                                 <Badge variant="outline" className="text-xs text-muted-foreground">Título</Badge>
-                              ) : isNaPlanilha(s) ? (
+                              ) : isNaPlanilha(s) && planilhaIds.has(s.planilhaItemId!) ? (
                                 <Badge className="bg-green-600 text-white text-xs">
                                   <Check className="h-3 w-3 mr-1" />
                                   Na Planilha
                                 </Badge>
-                              ) : isConfirmadoSemVinculo(s) ? (
+                              ) : isConfirmadoSemVinculo(s) || (isNaPlanilha(s) && !planilhaIds.has(s.planilhaItemId!)) ? (
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -652,7 +659,7 @@ function AtestadoDetailPage() {
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Item marcado como enviado mas não encontrado na Planilha. Clique para corrigir.</p>
+                                      <p>Item marcado como enviado mas não encontrado na Planilha (possivelmente por RLS ou item excluído). Clique para reenviar.</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
