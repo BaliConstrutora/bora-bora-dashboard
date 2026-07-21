@@ -461,6 +461,23 @@ export async function listCategoriasExistentes(): Promise<string[]> {
   return unique;
 }
 
+export type SendServicoResult = {
+  planilhaItemId: string;
+  mainCodigo: string;
+  fresagem: boolean;
+  childCodigo?: string;
+  childQuantidade?: number;
+};
+
+const FRESAGEM_FATOR = 0.05;
+
+function isFresagemM2(unidade: string, descricao: string): boolean {
+  const u = unidade.trim().toLowerCase().replace(/\s+/g, "");
+  const isM2 = u === "m²" || u === "m2";
+  const hasFresagem = /fresagem/i.test(descricao ?? "");
+  return isM2 && hasFresagem;
+}
+
 // Envia um serviço do atestado para a Planilha de Quantidades
 export async function sendServicoToPlanilha(
   userId: string,
@@ -472,7 +489,7 @@ export async function sendServicoToPlanilha(
     quantidade: number;
     unidade: string;
   }
-): Promise<void> {
+): Promise<SendServicoResult> {
   // Always resolve the authenticated user to guarantee RLS ownership on insert.
   const { data: userData, error: userErr } = await supabase.auth.getUser();
   if (userErr || !userData.user) throw new Error("Não autenticado");
@@ -480,12 +497,18 @@ export async function sendServicoToPlanilha(
   if (userId && userId !== authUserId) {
     console.warn("[sendServicoToPlanilha] userId param diverges from auth user; using auth user.");
   }
-  // Verifica se já existe um item com o mesmo código na planilha
+
+  const fresagem = isFresagemM2(payload.unidade, payload.descricao);
+  const baseCodigo = payload.codigo.trim().replace(/[ab]$/i, "");
+  const mainCodigo = fresagem ? `${baseCodigo}a` : payload.codigo;
+  const childCodigo = fresagem ? `${baseCodigo}b` : undefined;
+
+  // Verifica se já existe um item com o mesmo código (main) na planilha
   const { data: existing } = await supabase
     .from("planilha_items")
     .select("id, quantidade, atestados_count")
     .eq("user_id", authUserId)
-    .eq("codigo", payload.codigo)
+    .eq("codigo", mainCodigo)
     .maybeSingle();
 
   let planilhaItemId: string;
@@ -508,7 +531,7 @@ export async function sendServicoToPlanilha(
       .from("planilha_items")
       .insert({
         user_id: authUserId,
-        codigo: payload.codigo,
+        codigo: mainCodigo,
         categoria: payload.categoria,
         descricao: payload.descricao,
         quantidade: payload.quantidade,
@@ -531,4 +554,48 @@ export async function sendServicoToPlanilha(
     })
     .eq("id", servicoId);
   if (servicoError) throw servicoError;
+
+  // Conversão automática Fresagem m² → m³
+  let childQuantidade: number | undefined;
+  if (fresagem && childCodigo) {
+    childQuantidade = payload.quantidade * FRESAGEM_FATOR;
+    const { data: existingChild } = await supabase
+      .from("planilha_items")
+      .select("id, quantidade, atestados_count")
+      .eq("user_id", authUserId)
+      .eq("codigo", childCodigo)
+      .maybeSingle();
+    if (existingChild) {
+      const { error: updChildErr } = await supabase
+        .from("planilha_items")
+        .update({
+          quantidade: (existingChild.quantidade ?? 0) + childQuantidade,
+          atestados_count: (existingChild.atestados_count ?? 0) + 1,
+          item_pai_id: planilhaItemId,
+          fator_conversao: FRESAGEM_FATOR,
+          unidade_origem: "m²",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingChild.id);
+      if (updChildErr) throw updChildErr;
+    } else {
+      const { error: insChildErr } = await supabase
+        .from("planilha_items")
+        .insert({
+          user_id: authUserId,
+          codigo: childCodigo,
+          categoria: payload.categoria,
+          descricao: payload.descricao,
+          unidade: "m³",
+          quantidade: childQuantidade,
+          atestados_count: 1,
+          item_pai_id: planilhaItemId,
+          fator_conversao: FRESAGEM_FATOR,
+          unidade_origem: "m²",
+        });
+      if (insChildErr) throw insChildErr;
+    }
+  }
+
+  return { planilhaItemId, mainCodigo, fresagem, childCodigo, childQuantidade };
 }
