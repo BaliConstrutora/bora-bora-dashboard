@@ -18,9 +18,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
-import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems, upsertPlanilhaItem } from "@/lib/atestados-api";
+import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems, upsertPlanilhaItem, listCategoriasExistentes } from "@/lib/atestados-api";
 import { extractAtestadoFromPdf, type ExtractedAtestado } from "@/lib/atestados-ai.functions";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/atestados/novo")({
   head: () => ({ meta: [{ title: "Cadastro de Atestado — Bora Bora" }] }),
@@ -254,11 +254,12 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-function ServiceCard({ servico, onConfirm, onIgnore, onUpdate }: {
+function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
   servico: ServicoExtraido;
   onConfirm: (id: string) => void;
   onIgnore: (id: string) => void;
   onUpdate: (id: string, field: keyof ServicoExtraido, value: string | number) => void;
+  categorias: string[];
 }) {
   const isPendente = servico.status === "pendente";
   const isConfirmado = servico.status === "confirmado";
@@ -301,7 +302,7 @@ function ServiceCard({ servico, onConfirm, onIgnore, onUpdate }: {
                     <Select value={servico.categoriaSugerida} onValueChange={(v) => onUpdate(servico.id, "categoriaSugerida", v)}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {CATEGORIAS_PADRAO.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {categorias.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -350,6 +351,12 @@ function NovoAtestadoPage() {
   const [progress, setProgress] = useState<{ upload: "done" | "active" | "pending"; extract: "done" | "active" | "pending"; identify: "done" | "active" | "pending"; correlate: "done" | "active" | "pending" }>({ upload: "pending", extract: "pending", identify: "pending", correlate: "pending" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractAtestadoFromPdf);
+
+  const { data: categoriasDB = [] } = useQuery({
+    queryKey: ["categorias-existentes"],
+    queryFn: listCategoriasExistentes,
+  });
+  const todasCategorias = [...new Set([...CATEGORIAS_PADRAO, ...categoriasDB])].sort();
 
   const form = useForm<AtestadoForm>({
     resolver: zodResolver(atestadoSchema),
@@ -678,7 +685,7 @@ function NovoAtestadoPage() {
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
           <div className="space-y-3">
-            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} />))}
+            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} />))}
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
