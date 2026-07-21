@@ -302,7 +302,7 @@ function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
                     <Select value={servico.categoriaSugerida} onValueChange={(v) => onUpdate(servico.id, "categoriaSugerida", v)}>
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {CATEGORIAS_PADRAO.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {categorias.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
