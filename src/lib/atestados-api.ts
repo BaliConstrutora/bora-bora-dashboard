@@ -358,27 +358,27 @@ export async function updateServico(id: string, patch: UpdateServicoPatch): Prom
         if (delErr) throw delErr;
         novoPlanilhaItemId = null;
       } else {
-        const updates: Record<string, unknown> = { quantidade: novaQtd };
+        const updates: Partial<PlanilhaRow> = { quantidade: novaQtd };
         if (patch.descricaoSugerida !== undefined) updates.descricao = newDescricao;
         if (patch.unidadeSugerida !== undefined) updates.unidade = newUnidade;
         if (patch.categoriaSugerida !== undefined && newCategoria) updates.categoria = newCategoria;
         const { error: updErr } = await supabase
           .from("planilha_items")
-          .update(updates)
+          .update(updates as never)
           .eq("id", item.id);
         if (updErr) throw updErr;
       }
     }
   } else if (oldPlanilhaId) {
     // Só descricao/unidade/categoria mudaram → propaga no item vinculado
-    const updates: Record<string, unknown> = {};
+    const updates: Partial<PlanilhaRow> = {};
     if (patch.descricaoSugerida !== undefined) updates.descricao = newDescricao;
     if (patch.unidadeSugerida !== undefined) updates.unidade = newUnidade;
     if (patch.categoriaSugerida !== undefined && newCategoria) updates.categoria = newCategoria;
     if (Object.keys(updates).length > 0) {
       const { error: updErr } = await supabase
         .from("planilha_items")
-        .update(updates)
+        .update(updates as never)
         .eq("id", oldPlanilhaId);
       if (updErr) throw updErr;
     }
