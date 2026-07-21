@@ -442,11 +442,18 @@ export async function sendServicoToPlanilha(
     unidade: string;
   }
 ): Promise<void> {
+  // Always resolve the authenticated user to guarantee RLS ownership on insert.
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !userData.user) throw new Error("Não autenticado");
+  const authUserId = userData.user.id;
+  if (userId && userId !== authUserId) {
+    console.warn("[sendServicoToPlanilha] userId param diverges from auth user; using auth user.");
+  }
   // Verifica se já existe um item com o mesmo código na planilha
   const { data: existing } = await supabase
     .from("planilha_items")
     .select("id, quantidade, atestados_count")
-    .eq("user_id", userId)
+    .eq("user_id", authUserId)
     .eq("codigo", payload.codigo)
     .maybeSingle();
 
@@ -469,7 +476,7 @@ export async function sendServicoToPlanilha(
     const { data: newItem, error } = await supabase
       .from("planilha_items")
       .insert({
-        user_id: userId,
+        user_id: authUserId,
         codigo: payload.codigo,
         categoria: payload.categoria,
         descricao: payload.descricao,
