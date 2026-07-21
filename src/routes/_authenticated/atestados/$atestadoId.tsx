@@ -9,6 +9,7 @@ import {
   updateServico,
   sendServicoToPlanilha,
   listCategoriasExistentes,
+  listCategoriasPersonalizadas,
   getCurrentUserId,
   listPlanilhaItems,
 } from "@/lib/atestados-api";
@@ -134,10 +135,16 @@ function AtestadoDetailPage() {
   });
 
   const { data: categoriasDB = [] } = useQuery({
-    queryKey: ["categorias-existentes"],
+    queryKey: ["categorias-planilha"],
     queryFn: listCategoriasExistentes,
+    staleTime: 0,
   });
-  const todasCategorias = [...new Set([...CATEGORIAS_PADRAO, ...categoriasDB])].sort();
+  const { data: categoriasCustom = [] } = useQuery({
+    queryKey: ["categorias-personalizadas"],
+    queryFn: listCategoriasPersonalizadas,
+    staleTime: 0,
+  });
+  const todasCategorias = [...new Set([...CATEGORIAS_PADRAO, ...categoriasCustom, ...categoriasDB])].sort();
 
   const { data: planilhaItens = [] } = useQuery({
     queryKey: ["planilha"],
@@ -189,7 +196,8 @@ function AtestadoDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["atestado", atestadoId] });
       queryClient.invalidateQueries({ queryKey: ["atestados"] });
       queryClient.invalidateQueries({ queryKey: ["planilha"] });
-      queryClient.invalidateQueries({ queryKey: ["categorias-existentes"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-personalizadas"] });
       toast.success("Atestado atualizado com sucesso!");
       setIsEditing(false);
       setEditForm(null);
@@ -215,7 +223,8 @@ function AtestadoDetailPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["atestado", atestadoId] });
       queryClient.invalidateQueries({ queryKey: ["planilha"] });
-      queryClient.invalidateQueries({ queryKey: ["categorias-existentes"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-personalizadas"] });
       toast.success("Serviço enviado para a Planilha de Quantidades!");
     } catch (e) {
       toast.error((e as Error).message);

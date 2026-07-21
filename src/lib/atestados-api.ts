@@ -445,7 +445,10 @@ export async function listCategoriasExistentes(): Promise<string[]> {
   const { data, error } = await supabase
     .from("planilha_items")
     .select("categoria");
-  if (error) throw error;
+  if (error) {
+    console.error("[listCategoriasExistentes] erro ao buscar categorias:", error);
+    return [];
+  }
   const unique = [
     ...new Set((data ?? []).map((d: { categoria: string }) => d.categoria).filter(Boolean)),
   ].sort() as string[];
