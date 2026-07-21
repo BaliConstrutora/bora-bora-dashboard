@@ -634,12 +634,12 @@ function AtestadoDetailPage() {
                             <TableCell>
                               {titulo ? (
                                 <Badge variant="outline" className="text-xs text-muted-foreground">Título</Badge>
-                              ) : isNaPlanilha(s) ? (
+                              ) : isNaPlanilha(s) && planilhaIds.has(s.planilhaItemId!) ? (
                                 <Badge className="bg-green-600 text-white text-xs">
                                   <Check className="h-3 w-3 mr-1" />
                                   Na Planilha
                                 </Badge>
-                              ) : isConfirmadoSemVinculo(s) ? (
+                              ) : isConfirmadoSemVinculo(s) || (isNaPlanilha(s) && !planilhaIds.has(s.planilhaItemId!)) ? (
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -659,7 +659,7 @@ function AtestadoDetailPage() {
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Item marcado como enviado mas não encontrado na Planilha. Clique para corrigir.</p>
+                                      <p>Item marcado como enviado mas não encontrado na Planilha (possivelmente por RLS ou item excluído). Clique para reenviar.</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
