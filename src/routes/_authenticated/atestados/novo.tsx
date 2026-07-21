@@ -685,7 +685,7 @@ function NovoAtestadoPage() {
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
           <div className="space-y-3">
-            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} />))}
+            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} />))}
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
