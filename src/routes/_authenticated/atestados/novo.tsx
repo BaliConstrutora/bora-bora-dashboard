@@ -285,8 +285,9 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
+function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias }: {
   servico: ServicoExtraido;
+  match?: MatchInfo | null;
   onConfirm: (id: string) => void;
   onIgnore: (id: string) => void;
   onUpdate: (id: string, field: keyof ServicoExtraido, value: string | number) => void;
@@ -296,7 +297,10 @@ function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
   const isConfirmado = servico.status === "confirmado";
   const isIgnorado = servico.status === "ignorado";
   return (
-    <Card className={cn(isConfirmado && "border-green-300 bg-green-50/40", isIgnorado && "opacity-60")}>
+    <Card
+      className={cn(isConfirmado && "border-green-300 bg-green-50/40", isIgnorado && "opacity-60")}
+      style={match ? { borderLeft: "3px solid #16a34a" } : undefined}
+    >
       <CardContent className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-start">
           <div className="space-y-1">
@@ -308,8 +312,19 @@ function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
           <div className="space-y-2">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sugestão IA — Planilha Bali</p>
             {isPendente && (
+              match ? (
+                <Badge className="bg-green-50 text-green-700 border border-green-200 text-xs mb-2 hover:bg-green-50">
+                  <Check className="h-3 w-3 mr-1" />
+                  Match na Planilha: {match.codigo} — {match.descricao} ({Math.round(match.score * 100)}%)
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs mb-2 text-muted-foreground">
+                  ✦ Novo item para a Planilha
+                </Badge>
+              )
+            )}
+            {isPendente && (
               <div className="space-y-2">
-                <Badge variant="outline" className="text-[10px]">✦ Novo item para a Planilha</Badge>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] text-muted-foreground">Código</label>
