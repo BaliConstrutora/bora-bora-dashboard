@@ -17,7 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
-import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
+import type { Aditivo, AditivoTipo, ServicoExtraido, PlanilhaItem } from "@/types";
 import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems, upsertPlanilhaItem, listCategoriasExistentes, listCategoriasPersonalizadas } from "@/lib/atestados-api";
 import { extractAtestadoFromPdf, type ExtractedAtestado } from "@/lib/atestados-ai.functions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -182,6 +182,37 @@ function normalizeQuantidade(n?: number | null): number | undefined {
   return Number.isFinite(n) && n >= 0 ? n : undefined;
 }
 
+// ---------- Match por similaridade com a Planilha ----------
+
+type MatchInfo = { codigo: string; descricao: string; score: number };
+
+function calcSimilarity(a: string, b: string): number {
+  const normalize = (s: string) =>
+    s.toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean);
+  const wordsA = new Set(normalize(a));
+  const wordsB = new Set(normalize(b));
+  const intersection = [...wordsA].filter((w) => wordsB.has(w)).length;
+  const union = new Set([...wordsA, ...wordsB]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function findBestMatch(servico: ServicoExtraido, itens: PlanilhaItem[]): MatchInfo | null {
+  const descToMatch = servico.descricaoSugerida ?? servico.descricaoOriginal;
+  let best: MatchInfo | null = null;
+  for (const item of itens) {
+    const score = calcSimilarity(descToMatch, item.descricao);
+    if (score > 0.45 && (!best || score > best.score)) {
+      best = { codigo: item.codigo, descricao: item.descricao, score };
+    }
+  }
+  return best;
+}
+
 interface NormalizedExtraction {
   fields: {
     numeroCat?: string; contratante?: string; cnpjContratante?: string;
@@ -254,8 +285,9 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
+function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias }: {
   servico: ServicoExtraido;
+  match?: MatchInfo | null;
   onConfirm: (id: string) => void;
   onIgnore: (id: string) => void;
   onUpdate: (id: string, field: keyof ServicoExtraido, value: string | number) => void;
@@ -265,7 +297,10 @@ function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
   const isConfirmado = servico.status === "confirmado";
   const isIgnorado = servico.status === "ignorado";
   return (
-    <Card className={cn(isConfirmado && "border-green-300 bg-green-50/40", isIgnorado && "opacity-60")}>
+    <Card
+      className={cn(isConfirmado && "border-green-300 bg-green-50/40", isIgnorado && "opacity-60")}
+      style={match ? { borderLeft: "3px solid #16a34a" } : undefined}
+    >
       <CardContent className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-start">
           <div className="space-y-1">
@@ -277,8 +312,19 @@ function ServiceCard({ servico, onConfirm, onIgnore, onUpdate, categorias }: {
           <div className="space-y-2">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Sugestão IA — Planilha Bali</p>
             {isPendente && (
+              match ? (
+                <Badge className="bg-green-50 text-green-700 border border-green-200 text-xs mb-2 hover:bg-green-50">
+                  <Check className="h-3 w-3 mr-1" />
+                  Match na Planilha: {match.codigo} — {match.descricao} ({Math.round(match.score * 100)}%)
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs mb-2 text-muted-foreground">
+                  ✦ Novo item para a Planilha
+                </Badge>
+              )
+            )}
+            {isPendente && (
               <div className="space-y-2">
-                <Badge variant="outline" className="text-[10px]">✦ Novo item para a Planilha</Badge>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] text-muted-foreground">Código</label>
@@ -348,6 +394,7 @@ function NovoAtestadoPage() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfPath, setPdfPath] = useState<string | null>(null);
   const [servicos, setServicos] = useState<ServicoExtraido[]>([]);
+  const [matchMap, setMatchMap] = useState<Record<string, MatchInfo | null>>({});
   const [progress, setProgress] = useState<{ upload: "done" | "active" | "pending"; extract: "done" | "active" | "pending"; identify: "done" | "active" | "pending"; correlate: "done" | "active" | "pending" }>({ upload: "pending", extract: "pending", identify: "pending", correlate: "pending" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractAtestadoFromPdf);
@@ -440,6 +487,15 @@ function NovoAtestadoPage() {
           status: "pendente" as const,
         };
       });
+      const nextMatchMap: Record<string, MatchInfo | null> = {};
+      for (const s of svcs) {
+        const best = findBestMatch(s, planilha);
+        nextMatchMap[s.id] = best;
+        if (best && !s.codigoSugerido) {
+          s.codigoSugerido = best.codigo;
+        }
+      }
+      setMatchMap(nextMatchMap);
       setServicos(svcs);
       setProgress((p) => ({ ...p, correlate: "done" }));
       toast.success("Dados extraídos com sucesso pelo IA!");
@@ -691,7 +747,7 @@ function NovoAtestadoPage() {
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
           <div className="space-y-3">
-            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} />))}
+            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} match={matchMap[servico.id]} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} />))}
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
