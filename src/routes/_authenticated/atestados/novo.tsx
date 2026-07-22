@@ -400,6 +400,9 @@ function NovoAtestadoPage() {
   const [pdfPath, setPdfPath] = useState<string | null>(null);
   const [servicos, setServicos] = useState<ServicoExtraido[]>([]);
   const [matchMap, setMatchMap] = useState<Record<string, MatchInfo | null>>({});
+  const [manuaisIds, setManuaisIds] = useState<Set<string>>(new Set());
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualForm, setManualForm] = useState<{ codigo: string; descricao: string; quantidade: string; unidade: string; categoria: string }>({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" });
   const [progress, setProgress] = useState<{ upload: "done" | "active" | "pending"; extract: "done" | "active" | "pending"; identify: "done" | "active" | "pending"; correlate: "done" | "active" | "pending" }>({ upload: "pending", extract: "pending", identify: "pending", correlate: "pending" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractAtestadoFromPdf);
