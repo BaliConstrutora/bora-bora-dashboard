@@ -17,7 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
-import type { Aditivo, AditivoTipo, ServicoExtraido } from "@/types";
+import type { Aditivo, AditivoTipo, ServicoExtraido, PlanilhaItem } from "@/types";
 import { createAtestadoFull, getCurrentUserId, uploadAtestadoPdf, listPlanilhaItems, upsertPlanilhaItem, listCategoriasExistentes, listCategoriasPersonalizadas } from "@/lib/atestados-api";
 import { extractAtestadoFromPdf, type ExtractedAtestado } from "@/lib/atestados-ai.functions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -180,6 +180,37 @@ function normalizeCategoria(s?: string | null): string {
 function normalizeQuantidade(n?: number | null): number | undefined {
   if (n == null) return undefined;
   return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+// ---------- Match por similaridade com a Planilha ----------
+
+type MatchInfo = { codigo: string; descricao: string; score: number };
+
+function calcSimilarity(a: string, b: string): number {
+  const normalize = (s: string) =>
+    s.toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean);
+  const wordsA = new Set(normalize(a));
+  const wordsB = new Set(normalize(b));
+  const intersection = [...wordsA].filter((w) => wordsB.has(w)).length;
+  const union = new Set([...wordsA, ...wordsB]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function findBestMatch(servico: ServicoExtraido, itens: PlanilhaItem[]): MatchInfo | null {
+  const descToMatch = servico.descricaoSugerida ?? servico.descricaoOriginal;
+  let best: MatchInfo | null = null;
+  for (const item of itens) {
+    const score = calcSimilarity(descToMatch, item.descricao);
+    if (score > 0.45 && (!best || score > best.score)) {
+      best = { codigo: item.codigo, descricao: item.descricao, score };
+    }
+  }
+  return best;
 }
 
 interface NormalizedExtraction {
