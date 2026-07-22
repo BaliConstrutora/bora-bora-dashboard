@@ -780,8 +780,54 @@ function NovoAtestadoPage() {
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
           <div className="space-y-3">
-            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} match={matchMap[servico.id]} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} />))}
+            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} match={matchMap[servico.id]} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} isManual={manuaisIds.has(servico.id)} />))}
           </div>
+          {!showManualForm ? (
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowManualForm(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar Serviço Manualmente
+              </Button>
+            </div>
+          ) : (
+            <Card className="border-purple-300 bg-purple-50/30">
+              <CardHeader className="pb-3"><CardTitle className="text-sm">Novo serviço manual</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Código</label>
+                    <Input placeholder="Ex: 2.1" value={manualForm.codigo} onChange={(e) => setManualForm((f) => ({ ...f, codigo: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Quantidade *</label>
+                    <Input type="number" placeholder="0" value={manualForm.quantidade} onChange={(e) => setManualForm((f) => ({ ...f, quantidade: e.target.value }))} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs text-muted-foreground">Descrição *</label>
+                    <Input placeholder="Descrição do serviço" value={manualForm.descricao} onChange={(e) => setManualForm((f) => ({ ...f, descricao: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Unidade</label>
+                    <Select value={manualForm.unidade} onValueChange={(v) => setManualForm((f) => ({ ...f, unidade: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{UNIDADES.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Categoria</label>
+                    <Select value={manualForm.categoria} onValueChange={(v) => setManualForm((f) => ({ ...f, categoria: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{todasCategorias.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button variant="outline" size="sm" onClick={() => { setShowManualForm(false); setManualForm({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" }); }}>Cancelar</Button>
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleAddManual}>Adicionar</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
             <Button onClick={handleSalvar} disabled={saveMut.isPending}>
