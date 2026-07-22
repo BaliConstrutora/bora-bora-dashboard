@@ -394,6 +394,7 @@ function NovoAtestadoPage() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfPath, setPdfPath] = useState<string | null>(null);
   const [servicos, setServicos] = useState<ServicoExtraido[]>([]);
+  const [matchMap, setMatchMap] = useState<Record<string, MatchInfo | null>>({});
   const [progress, setProgress] = useState<{ upload: "done" | "active" | "pending"; extract: "done" | "active" | "pending"; identify: "done" | "active" | "pending"; correlate: "done" | "active" | "pending" }>({ upload: "pending", extract: "pending", identify: "pending", correlate: "pending" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractAtestadoFromPdf);
@@ -486,6 +487,15 @@ function NovoAtestadoPage() {
           status: "pendente" as const,
         };
       });
+      const nextMatchMap: Record<string, MatchInfo | null> = {};
+      for (const s of svcs) {
+        const best = findBestMatch(s, planilha);
+        nextMatchMap[s.id] = best;
+        if (best && !s.codigoSugerido) {
+          s.codigoSugerido = best.codigo;
+        }
+      }
+      setMatchMap(nextMatchMap);
       setServicos(svcs);
       setProgress((p) => ({ ...p, correlate: "done" }));
       toast.success("Dados extraídos com sucesso pelo IA!");
