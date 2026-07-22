@@ -285,7 +285,7 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias }: {
+function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias, isManual }: {
   servico: ServicoExtraido;
   match?: MatchInfo | null;
   onConfirm: (id: string) => void;
@@ -294,7 +294,6 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
   categorias: string[];
   isManual?: boolean;
 }) {
-  const { isManual } = arguments[0] as { isManual?: boolean };
   const isPendente = servico.status === "pendente";
   const isConfirmado = servico.status === "confirmado";
   const isIgnorado = servico.status === "ignorado";
@@ -318,6 +317,10 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
                 <Badge className="bg-green-50 text-green-700 border border-green-200 text-xs mb-2 hover:bg-green-50">
                   <Check className="h-3 w-3 mr-1" />
                   Match na Planilha: {match.codigo} — {match.descricao} ({Math.round(match.score * 100)}%)
+                </Badge>
+              ) : isManual ? (
+                <Badge className="bg-purple-100 text-purple-700 border border-purple-300 text-xs mb-2 hover:bg-purple-100">
+                  ✦ Adicionado manualmente
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-xs mb-2 text-muted-foreground">
