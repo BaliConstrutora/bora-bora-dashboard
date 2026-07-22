@@ -38,7 +38,20 @@ export type ExtractResult =
   | { ok: false; error: string };
 
 const SYSTEM_PROMPT =
-  "You are a specialist in Brazilian construction company documents (CAT - Certidão de Acervo Técnico from CREA-MG). Extract all data from the uploaded PDF and return ONLY a valid JSON object with no markdown, no explanation, just the raw JSON.";
+  `You are a specialist in Brazilian construction company documents (CAT - Certidão de Acervo Técnico from CREA-MG). Extract all data from the uploaded PDF and return ONLY a valid JSON object with no markdown, no explanation, just the raw JSON.
+
+This PDF may contain services repeated per street, neighborhood, or location (e.g., Section 2.1 Rua X, Section 2.2 Rua Y with the same 4 services each).
+When this pattern is detected:
+1. DO NOT list each street separately as individual services.
+2. SUM all quantities of the same service across all streets/locations.
+3. Return ONE consolidated entry per unique service type.
+4. The codigo_sugerido should be the base code without street suffix (e.g., '2.1' not '2.1.1').
+5. The descricao_sugerida should be the service description without the street name.
+6. The quantidade_sugerida should be the TOTAL sum across ALL streets.
+
+Example: if 'Pintura de Ligação' appears in 17 streets with quantities 2032, 873, 1680... → return ONE entry with total quantity = sum of all.
+
+Also identify section headers (lines with no quantity or quantity=0) and mark them with codigo ending in '.00' or descricao in ALL CAPS so they can be filtered as titles.`;
 
 const USER_PROMPT = `Extract the CAT data and return ONLY this JSON shape (use null when unknown):
 {

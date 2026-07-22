@@ -285,13 +285,14 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias }: {
+function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias, isManual }: {
   servico: ServicoExtraido;
   match?: MatchInfo | null;
   onConfirm: (id: string) => void;
   onIgnore: (id: string) => void;
   onUpdate: (id: string, field: keyof ServicoExtraido, value: string | number) => void;
   categorias: string[];
+  isManual?: boolean;
 }) {
   const isPendente = servico.status === "pendente";
   const isConfirmado = servico.status === "confirmado";
@@ -316,6 +317,10 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
                 <Badge className="bg-green-50 text-green-700 border border-green-200 text-xs mb-2 hover:bg-green-50">
                   <Check className="h-3 w-3 mr-1" />
                   Match na Planilha: {match.codigo} — {match.descricao} ({Math.round(match.score * 100)}%)
+                </Badge>
+              ) : isManual ? (
+                <Badge className="bg-purple-100 text-purple-700 border border-purple-300 text-xs mb-2 hover:bg-purple-100">
+                  ✦ Adicionado manualmente
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-xs mb-2 text-muted-foreground">
@@ -395,6 +400,9 @@ function NovoAtestadoPage() {
   const [pdfPath, setPdfPath] = useState<string | null>(null);
   const [servicos, setServicos] = useState<ServicoExtraido[]>([]);
   const [matchMap, setMatchMap] = useState<Record<string, MatchInfo | null>>({});
+  const [manuaisIds, setManuaisIds] = useState<Set<string>>(new Set());
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualForm, setManualForm] = useState<{ codigo: string; descricao: string; quantidade: string; unidade: string; categoria: string }>({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" });
   const [progress, setProgress] = useState<{ upload: "done" | "active" | "pending"; extract: "done" | "active" | "pending"; identify: "done" | "active" | "pending"; correlate: "done" | "active" | "pending" }>({ upload: "pending", extract: "pending", identify: "pending", correlate: "pending" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extractFn = useServerFn(extractAtestadoFromPdf);
@@ -532,6 +540,31 @@ function NovoAtestadoPage() {
   }
   function handleIgnore(id: string) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, status: "ignorado" as const } : s)); }
   function handleUpdate(id: string, field: keyof ServicoExtraido, value: string | number) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s)); }
+
+  function handleAddManual() {
+    const desc = manualForm.descricao.trim();
+    const qtd = Number(manualForm.quantidade);
+    if (!desc) { toast.error("Informe a descrição do serviço."); return; }
+    if (!Number.isFinite(qtd) || qtd <= 0) { toast.error("Informe uma quantidade válida."); return; }
+    const id = crypto.randomUUID();
+    const novo: ServicoExtraido = {
+      id,
+      descricaoOriginal: desc,
+      quantidadeOriginal: `${qtd} ${manualForm.unidade}`.trim(),
+      codigoSugerido: manualForm.codigo.trim() || undefined,
+      descricaoSugerida: desc,
+      unidadeSugerida: manualForm.unidade,
+      quantidadeSugerida: qtd,
+      categoriaSugerida: manualForm.categoria,
+      status: "pendente",
+    };
+    setServicos((prev) => [...prev, novo]);
+    setManuaisIds((prev) => { const next = new Set(prev); next.add(id); return next; });
+    setMatchMap((prev) => ({ ...prev, [id]: null }));
+    setShowManualForm(false);
+    setManualForm({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" });
+    toast.success("Serviço adicionado manualmente.");
+  }
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -747,8 +780,54 @@ function NovoAtestadoPage() {
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
           <div className="space-y-3">
-            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} match={matchMap[servico.id]} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} />))}
+            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} match={matchMap[servico.id]} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} isManual={manuaisIds.has(servico.id)} />))}
           </div>
+          {!showManualForm ? (
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowManualForm(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar Serviço Manualmente
+              </Button>
+            </div>
+          ) : (
+            <Card className="border-purple-300 bg-purple-50/30">
+              <CardHeader className="pb-3"><CardTitle className="text-sm">Novo serviço manual</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Código</label>
+                    <Input placeholder="Ex: 2.1" value={manualForm.codigo} onChange={(e) => setManualForm((f) => ({ ...f, codigo: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Quantidade *</label>
+                    <Input type="number" placeholder="0" value={manualForm.quantidade} onChange={(e) => setManualForm((f) => ({ ...f, quantidade: e.target.value }))} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs text-muted-foreground">Descrição *</label>
+                    <Input placeholder="Descrição do serviço" value={manualForm.descricao} onChange={(e) => setManualForm((f) => ({ ...f, descricao: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Unidade</label>
+                    <Select value={manualForm.unidade} onValueChange={(v) => setManualForm((f) => ({ ...f, unidade: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{UNIDADES.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Categoria</label>
+                    <Select value={manualForm.categoria} onValueChange={(v) => setManualForm((f) => ({ ...f, categoria: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{todasCategorias.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button variant="outline" size="sm" onClick={() => { setShowManualForm(false); setManualForm({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" }); }}>Cancelar</Button>
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleAddManual}>Adicionar</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
             <Button onClick={handleSalvar} disabled={saveMut.isPending}>
