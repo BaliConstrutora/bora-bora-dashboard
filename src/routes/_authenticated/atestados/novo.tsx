@@ -541,6 +541,31 @@ function NovoAtestadoPage() {
   function handleIgnore(id: string) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, status: "ignorado" as const } : s)); }
   function handleUpdate(id: string, field: keyof ServicoExtraido, value: string | number) { setServicos((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s)); }
 
+  function handleAddManual() {
+    const desc = manualForm.descricao.trim();
+    const qtd = Number(manualForm.quantidade);
+    if (!desc) { toast.error("Informe a descrição do serviço."); return; }
+    if (!Number.isFinite(qtd) || qtd <= 0) { toast.error("Informe uma quantidade válida."); return; }
+    const id = crypto.randomUUID();
+    const novo: ServicoExtraido = {
+      id,
+      descricaoOriginal: desc,
+      quantidadeOriginal: `${qtd} ${manualForm.unidade}`.trim(),
+      codigoSugerido: manualForm.codigo.trim() || undefined,
+      descricaoSugerida: desc,
+      unidadeSugerida: manualForm.unidade,
+      quantidadeSugerida: qtd,
+      categoriaSugerida: manualForm.categoria,
+      status: "pendente",
+    };
+    setServicos((prev) => [...prev, novo]);
+    setManuaisIds((prev) => { const next = new Set(prev); next.add(id); return next; });
+    setMatchMap((prev) => ({ ...prev, [id]: null }));
+    setShowManualForm(false);
+    setManualForm({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" });
+    toast.success("Serviço adicionado manualmente.");
+  }
+
   const saveMut = useMutation({
     mutationFn: async () => {
       const uid = await getCurrentUserId();
