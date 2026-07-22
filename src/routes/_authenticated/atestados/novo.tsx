@@ -292,7 +292,9 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
   onIgnore: (id: string) => void;
   onUpdate: (id: string, field: keyof ServicoExtraido, value: string | number) => void;
   categorias: string[];
+  isManual?: boolean;
 }) {
+  const { isManual } = arguments[0] as { isManual?: boolean };
   const isPendente = servico.status === "pendente";
   const isConfirmado = servico.status === "confirmado";
   const isIgnorado = servico.status === "ignorado";
