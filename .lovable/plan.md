@@ -1,58 +1,33 @@
 ## Goal
-Replace the Popover-based atestados viewer in the Planilha de Quantidades page with an inline expandable row, and add a "remove atestado from item" action that reverses its contribution to the planilha item.
+Detect and clean up orphan `servicos_extraidos` rows (rows with `planilha_item_id` set but whose parent `atestado` no longer exists) so `planilha_items.quantidade` and `atestados_count` stay accurate.
 
-## Changes
+## Changes — `src/lib/atestados-api.ts`
 
-### 1. `src/lib/atestados-api.ts`
-Add `removeAtestadoFromPlanilhaItem(planilhaItemId, atestadoId)`:
-- Find the `servicos_extraidos` row linking that atestado to that planilha item (status `confirmado`, matching `planilha_item_id` and `atestado_id`).
-- Read its `quantidade_sugerida`.
-- Update the `planilha_items` row: subtract the quantity from `quantidade`, decrement `atestados_count` (floor at 0). If resulting `quantidade <= 0`, delete the planilha item.
-- Update the `servicos_extraidos` row: set `status = 'pendente'`, `planilha_item_id = null`.
+### 1. New helper `cleanupOrphansForPlanilhaItem(planilhaItemId)`
+- Fetch all `servicos_extraidos` for that `planilha_item_id` with `status = 'confirmado'`, selecting `id, atestado_id, quantidade_sugerida` **without** the inner join (so orphans are visible).
+- Fetch the set of existing `atestados.id` for those `atestado_id`s (single `in()` query).
+- Compute the orphan rows (those whose `atestado_id` is not in the existing set).
+- If any orphans:
+  - Sum their `quantidade_sugerida` → `qtdOrfa`; count → `cntOrfa`.
+  - Read current `planilha_items.quantidade` and `atestados_count`.
+  - Update the planilha item: `quantidade = max(quantidade - qtdOrfa, 0)`, `atestados_count = max(count - cntOrfa, 0)`.
+  - If new `quantidade <= 0`, delete the planilha item; return `{ deleted: true }`.
+  - Otherwise update each orphan `servicos_extraidos` row: set `planilha_item_id = null` (keep status as-is; they'll simply be unlinked).
+- Return `{ deleted: boolean }`.
 
-### 2. `src/routes/_authenticated/atestados/planilha.tsx`
+### 2. Update `getAtestadosByPlanilhaItem(planilhaItemId)`
+- First call `cleanupOrphansForPlanilhaItem(planilhaItemId)`.
+- If it returns `deleted: true`, return `[]`.
+- Otherwise run the existing `atestados!inner` query as today and return the mapped list.
 
-Remove:
-- `AtestadosPopover` component.
-- `Popover`, `PopoverContent`, `PopoverTrigger` imports.
-
-Add imports: `ChevronDown`, `cn` from `@/lib/utils`, `removeAtestadoFromPlanilhaItem`.
-
-State + toggle:
-```ts
-const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-function toggleExpand(id: string) { /* immutable Set toggle */ }
-```
-
-Replace the popover trigger in the Atestados cell with a button containing:
-- `<Badge className="... whitespace-nowrap ...">{count} atestado(s)</Badge>`
-- `<ChevronDown>` rotating 180° when expanded.
-
-After the item `<TableRow>` (inside the same `<Fragment>`), conditionally render an expand row with `colSpan={7}` containing `<AtestadosExpandedList>`.
-
-New in-file component `AtestadosExpandedList({ itemId, seqMap, onRemove })`:
-- `useQuery(["atestados-por-item", itemId], () => getAtestadosByPlanilhaItem(itemId))`.
-- Container with left blue border (`border-l-4 border-primary bg-muted/30 px-4 py-3`).
-- Loading: centered spinner + "Carregando atestados…".
-- Empty: "Nenhum atestado vinculado."
-- Each row: AT-XX monospace badge, contratante, "Contribuição: {qtd} {unidade}", "Ver atestado →" Link to `/atestados/$atestadoId`, red ghost trash button calling `onRemove(atestadoId)`.
-
-Handler in `PlanilhaPage`:
-```ts
-const removeMut = useMutation({
-  mutationFn: ({ planilhaItemId, atestadoId }) => removeAtestadoFromPlanilhaItem(planilhaItemId, atestadoId),
-  onSuccess: (_d, vars) => {
-    toast.success("Atestado removido do item da Planilha.");
-    queryClient.invalidateQueries({ queryKey: ["planilha"] });
-    queryClient.invalidateQueries({ queryKey: ["atestados-por-item", vars.planilhaItemId] });
-  },
-  onError: (e: Error) => toast.error(e.message),
-});
-```
-
-Only the Atestados column and the row-below rendering change; all other columns, sorting, and category headers stay intact. The "Auto" badge branch for child items keeps its current non-expandable rendering.
+### 3. Update `listPlanilhaItems()`
+- Load all planilha items as today.
+- Load all confirmed `servicos_extraidos` that have a non-null `planilha_item_id` **joined with `atestados!inner`** (so orphans are excluded automatically), selecting `planilha_item_id`.
+- Build a `Map<planilhaItemId, realCount>` from the result.
+- For each item where `atestados_count !== realCount`, issue an `update({ atestados_count: realCount })` (fire in parallel with `Promise.all`) and patch the in-memory value before returning.
+- Note: only `atestados_count` is reconciled here (cheap, single column). Quantity reversal for orphans stays in `cleanupOrphansForPlanilhaItem`, triggered when the user expands a row in the Planilha page. This keeps `listPlanilhaItems` fast and avoids double-subtracting.
 
 ## Notes
-- Portuguese pt-BR strings throughout.
-- `whitespace-nowrap` on Badge prevents wrapping at narrow widths.
-- No DB schema changes.
+- No schema/migration changes.
+- No UI changes; the existing expandable row in `planilha.tsx` already invalidates `["planilha"]` after removal, so recalculated counts surface on next load.
+- FK cascade should normally prevent orphans, but this handles legacy/manual-cleanup rows and any future path that deletes an atestado outside the RPC.
