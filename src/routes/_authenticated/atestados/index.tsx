@@ -92,7 +92,7 @@ function OrdemBadge({ id, ordem }: { id: string; ordem: number }) {
         setEditing(true);
       }}
     >
-      {mut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : `AT-${String(ordem).padStart(2, "0")}`}
+      {mut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : ordem > 0 ? `AT-${String(ordem).padStart(2, "0")}` : "AT-—"}
     </Badge>
   );
 }
@@ -145,7 +145,11 @@ function AtestadosListPage() {
     if (oa !== ob) return oa - ob;
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
-  const fallbackSeq = new Map(sorted.map((a, i) => [a.id, i + 1] as const));
+  const seqMap = new Map<string, string>();
+  atestados.forEach((a) => {
+    const seq = a.ordem ?? 0;
+    seqMap.set(a.id, seq > 0 ? `AT-${String(seq).padStart(2, "0")}` : "AT-—");
+  });
 
   const filtered = sorted.filter((a) => {
     const s = search.toLowerCase();
@@ -245,7 +249,7 @@ function AtestadosListPage() {
                   filtered.map((a) => {
                     const sc = statusConfig[a.status];
                     const displayNumero = a.numeroCat ?? a.numero;
-                    const seq = a.ordem ?? fallbackSeq.get(a.id) ?? 0;
+                    const seq = a.ordem ?? 0;
                     return (
                       <TableRow key={a.id}>
                         <TableCell>
