@@ -113,6 +113,15 @@ function PlanilhaPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [criandoCategoria, setCriandoCategoria] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState("");
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  function toggleExpand(id: string) {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const upsertMut = useMutation({
     mutationFn: async (item: Partial<PlanilhaItem> & { id?: string }) => {
@@ -125,6 +134,16 @@ function PlanilhaPage() {
   const deleteMut = useMutation({
     mutationFn: deletePlanilhaItem,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["planilha"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const removeMut = useMutation({
+    mutationFn: ({ planilhaItemId, atestadoId }: { planilhaItemId: string; atestadoId: string }) =>
+      removeAtestadoFromPlanilhaItem(planilhaItemId, atestadoId),
+    onSuccess: (_d, vars) => {
+      toast.success("Atestado removido do item da Planilha.");
+      queryClient.invalidateQueries({ queryKey: ["planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["atestados-por-item", vars.planilhaItemId] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -337,7 +356,18 @@ function PlanilhaPage() {
                                     Auto {item.unidade}
                                   </Badge>
                                 ) : (item.atestadosCount ?? 0) > 0 ? (
-                                  <AtestadosPopover itemId={item.id} count={item.atestadosCount ?? 0} seqMap={seqMap} />
+                                  <button
+                                    onClick={() => toggleExpand(item.id)}
+                                    className="flex items-center gap-1.5 group"
+                                  >
+                                    <Badge className="bg-primary/10 text-primary hover:bg-primary/20 text-[11px] whitespace-nowrap cursor-pointer transition-colors">
+                                      {item.atestadosCount ?? 0} atestado(s)
+                                    </Badge>
+                                    <ChevronDown className={cn(
+                                      "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+                                      expandedItems.has(item.id) && "rotate-180"
+                                    )} />
+                                  </button>
                                 ) : (
                                   <span className="text-muted-foreground text-xs">—</span>
                                 )}
@@ -366,6 +396,18 @@ function PlanilhaPage() {
                                 </div>
                               </TableCell>
                             </TableRow>
+                            {expandedItems.has(item.id) && (item.atestadosCount ?? 0) > 0 && !isAuto && (
+                              <TableRow>
+                                <TableCell colSpan={7} className="p-0 border-b">
+                                  <AtestadosExpandedList
+                                    itemId={item.id}
+                                    seqMap={seqMap}
+                                    onRemove={(atestadoId) => removeMut.mutate({ planilhaItemId: item.id, atestadoId })}
+                                    isRemoving={(atestadoId) => removeMut.isPending && removeMut.variables?.planilhaItemId === item.id && removeMut.variables?.atestadoId === atestadoId}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            )}
                           </Fragment>
                         );
                       });
