@@ -20,7 +20,7 @@ import type { PlanilhaItem } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { listPlanilhaItems, savePlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId, listAtestados, getAtestadosByPlanilhaItem } from "@/lib/atestados-api";
+import { listPlanilhaItems, savePlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId, listAtestados, getAtestadosByPlanilhaItem, compareCodigo } from "@/lib/atestados-api";
 
 export const Route = createFileRoute("/_authenticated/atestados/planilha")({
   head: () => ({ meta: [{ title: "Planilha de Quantidades — Bora Bora" }] }),

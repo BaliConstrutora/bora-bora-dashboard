@@ -320,7 +320,7 @@ function parseCode(c: string): number[] {
   return c.replace(/[ab]$/i, "").split(".").map((n) => parseInt(n) || 0);
 }
 
-function compareCodigo(a: PlanilhaItem, b: PlanilhaItem): number {
+export function compareCodigo(a: PlanilhaItem, b: PlanilhaItem): number {
   const aParts = parseCode(a.codigo);
   const bParts = parseCode(b.codigo);
   for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
