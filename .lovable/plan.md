@@ -1,33 +1,41 @@
 ## Goal
-Detect and clean up orphan `servicos_extraidos` rows (rows with `planilha_item_id` set but whose parent `atestado` no longer exists) so `planilha_items.quantidade` and `atestados_count` stay accurate.
+Eliminate ghost quantities in `planilha_items` by recalculating each item's `quantidade` from the actual sum of its linked `servicos_extraidos` (only confirmed rows whose parent `atestado` still exists).
 
-## Changes — `src/lib/atestados-api.ts`
+## Migration
+One-shot fix for existing data (table is `planilha_items`, not `planilha_itens`):
 
-### 1. New helper `cleanupOrphansForPlanilhaItem(planilhaItemId)`
-- Fetch all `servicos_extraidos` for that `planilha_item_id` with `status = 'confirmado'`, selecting `id, atestado_id, quantidade_sugerida` **without** the inner join (so orphans are visible).
-- Fetch the set of existing `atestados.id` for those `atestado_id`s (single `in()` query).
-- Compute the orphan rows (those whose `atestado_id` is not in the existing set).
-- If any orphans:
-  - Sum their `quantidade_sugerida` → `qtdOrfa`; count → `cntOrfa`.
-  - Read current `planilha_items.quantidade` and `atestados_count`.
-  - Update the planilha item: `quantidade = max(quantidade - qtdOrfa, 0)`, `atestados_count = max(count - cntOrfa, 0)`.
-  - If new `quantidade <= 0`, delete the planilha item; return `{ deleted: true }`.
-  - Otherwise update each orphan `servicos_extraidos` row: set `planilha_item_id = null` (keep status as-is; they'll simply be unlinked).
-- Return `{ deleted: boolean }`.
+```sql
+UPDATE public.planilha_items pi
+SET
+  quantidade = COALESCE((
+    SELECT SUM(se.quantidade_sugerida)
+    FROM public.servicos_extraidos se
+    JOIN public.atestados a ON se.atestado_id = a.id
+    WHERE se.planilha_item_id = pi.id AND se.status = 'confirmado'
+  ), 0),
+  atestados_count = COALESCE((
+    SELECT COUNT(*)
+    FROM public.servicos_extraidos se
+    JOIN public.atestados a ON se.atestado_id = a.id
+    WHERE se.planilha_item_id = pi.id AND se.status = 'confirmado'
+  ), 0);
 
-### 2. Update `getAtestadosByPlanilhaItem(planilhaItemId)`
-- First call `cleanupOrphansForPlanilhaItem(planilhaItemId)`.
-- If it returns `deleted: true`, return `[]`.
-- Otherwise run the existing `atestados!inner` query as today and return the mapped list.
+DELETE FROM public.planilha_items WHERE quantidade <= 0;
+```
 
-### 3. Update `listPlanilhaItems()`
-- Load all planilha items as today.
-- Load all confirmed `servicos_extraidos` that have a non-null `planilha_item_id` **joined with `atestados!inner`** (so orphans are excluded automatically), selecting `planilha_item_id`.
-- Build a `Map<planilhaItemId, realCount>` from the result.
-- For each item where `atestados_count !== realCount`, issue an `update({ atestados_count: realCount })` (fire in parallel with `Promise.all`) and patch the in-memory value before returning.
-- Note: only `atestados_count` is reconciled here (cheap, single column). Quantity reversal for orphans stays in `cleanupOrphansForPlanilhaItem`, triggered when the user expands a row in the Planilha page. This keeps `listPlanilhaItems` fast and avoids double-subtracting.
+## Code — `src/lib/atestados-api.ts` › `listPlanilhaItems`
+Extend the existing reconciliation pass (which already fetches confirmed link rows joined with `atestados!inner`) to also sum `quantidade_sugerida`:
+
+- Change the `.select(...)` to include `quantidade_sugerida`.
+- Build two maps in the same loop: `counts` (as today) and `totals` (sum of `quantidade_sugerida`).
+- A `planilha_items` row is a mismatch if `atestadosCount !== realCount` OR `quantidade !== realTotal` (with small epsilon for floats).
+- For each mismatch:
+  - If `realTotal <= 0`: `DELETE` the planilha item, drop it from the returned list.
+  - Otherwise: `UPDATE { atestados_count: realCount, quantidade: realTotal }` and patch in-memory `item.quantidade` and `item.atestadosCount` before returning.
+- Fire updates/deletes in parallel with `Promise.all`.
+
+No changes elsewhere; `cleanupOrphansForPlanilhaItem` stays as a safety net for the expand-row flow.
 
 ## Notes
-- No schema/migration changes.
-- No UI changes; the existing expandable row in `planilha.tsx` already invalidates `["planilha"]` after removal, so recalculated counts surface on next load.
-- FK cascade should normally prevent orphans, but this handles legacy/manual-cleanup rows and any future path that deletes an atestado outside the RPC.
+- Migration runs first (approval flow); code change ships after.
+- No UI changes — `planilha.tsx` re-reads via TanStack Query.
