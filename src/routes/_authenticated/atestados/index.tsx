@@ -128,6 +128,7 @@ function AtestadosListPage() {
     mutationFn: deleteAtestado,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["atestados"] });
+      queryClient.invalidateQueries({ queryKey: ["planilha"] });
       toast.success("Atestado excluído com sucesso.");
     },
     onError: (e: Error) => toast.error(e.message),
