@@ -51,7 +51,15 @@ When this pattern is detected:
 
 Example: if 'Pintura de Ligação' appears in 17 streets with quantities 2032, 873, 1680... → return ONE entry with total quantity = sum of all.
 
-Also identify section headers (lines with no quantity or quantity=0) and mark them with codigo ending in '.00' or descricao in ALL CAPS so they can be filtered as titles.`;
+Also identify section headers (lines with no quantity or quantity=0) and mark them with codigo ending in '.00' or descricao in ALL CAPS so they can be filtered as titles.
+
+Use the following category mapping rules for categoria_sugerida:
+- Use 'Drenagem' for sarjeta, drainage, esgoto pluvial services.
+- Use 'Terraplanagem' for earthmoving, escavação, aterro, desmatamento services.
+- Use 'Transportes' for transporte de massa, DMT, caminhão basculante services.
+- Use 'Sinalização' for horizontal/vertical signaling, tachões, tachas services.
+- Use 'Administração Local' for engenheiro de obra, encarregado, equipe administrativa.
+- Use 'Demolição e Remoções' for demolição, remoção de pavimento services.`;
 
 const USER_PROMPT = `Extract the CAT data and return ONLY this JSON shape (use null when unknown):
 {
@@ -70,7 +78,7 @@ const USER_PROMPT = `Extract the CAT data and return ONLY this JSON shape (use n
   "registro_crea_rt": string|null,
   "art_numero": string|null,
   "descricao": string|null,
-  "servicos": [ { "codigo_sugerido": string|null, "descricao_sugerida": string|null, "unidade_sugerida": "m"|"m2"|"m3"|"t"|"kg"|"vb"|"un"|null, "quantidade_sugerida": number|null, "categoria_sugerida": "Serviços Preliminares"|"Fundações"|"Estrutura de Concreto"|"Alvenaria"|"Cobertura"|"Revestimentos"|"Instalações Hidráulicas"|"Instalações Elétricas"|"Pavimentação"|"Paisagismo"|"Outros" } ]
+  "servicos": [ { "codigo_sugerido": string|null, "descricao_sugerida": string|null, "unidade_sugerida": "m"|"m2"|"m3"|"t"|"kg"|"vb"|"un"|null, "quantidade_sugerida": number|null, "categoria_sugerida": "Serviços Preliminares"|"Fundações"|"Estrutura de Concreto"|"Alvenaria"|"Cobertura"|"Revestimentos"|"Instalações Hidráulicas"|"Instalações Elétricas"|"Pavimentação"|"Paisagismo"|"Drenagem"|"Terraplanagem"|"Transportes"|"Sinalização"|"Demolição e Remoções"|"Administração Local"|"Outros" } ]
 }`;
 
 function bufferToBase64(buf: ArrayBuffer): string {
@@ -117,7 +125,7 @@ export const extractAtestadoFromPdf = createServerFn({ method: "POST" })
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-5",
-          max_tokens: 4096,
+          max_tokens: 8192,
           system: SYSTEM_PROMPT,
           messages: [
             {
