@@ -98,9 +98,10 @@ function PlanilhaPage() {
   const { data: categoriasCustom = [] } = useQuery({ queryKey: ["categorias-custom"], queryFn: listCategoriasPersonalizadas });
   const { data: atestadosList = [] } = useQuery({ queryKey: ["atestados"], queryFn: listAtestados });
   const seqMap = new Map<string, string>();
-  [...atestadosList]
-    .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""))
-    .forEach((a, i) => seqMap.set(a.id, `AT-${String(i + 1).padStart(2, "0")}`));
+  atestadosList.forEach((a) => {
+    const seq = a.ordem ?? 0;
+    seqMap.set(a.id, seq > 0 ? `AT-${String(seq).padStart(2, "0")}` : "AT-—");
+  });
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState<string>("todas");
   const [sheetOpen, setSheetOpen] = useState(false);

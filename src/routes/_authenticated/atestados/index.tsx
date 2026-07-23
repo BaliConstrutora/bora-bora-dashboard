@@ -145,7 +145,11 @@ function AtestadosListPage() {
     if (oa !== ob) return oa - ob;
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
-  const fallbackSeq = new Map(sorted.map((a, i) => [a.id, i + 1] as const));
+  const seqMap = new Map<string, string>();
+  atestados.forEach((a) => {
+    const seq = a.ordem ?? 0;
+    seqMap.set(a.id, seq > 0 ? `AT-${String(seq).padStart(2, "0")}` : "AT-—");
+  });
 
   const filtered = sorted.filter((a) => {
     const s = search.toLowerCase();
