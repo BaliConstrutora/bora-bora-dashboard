@@ -140,7 +140,6 @@ function PlanilhaPage() {
     return matchSearch && matchCat;
   });
 
-  const categoriesInFiltered = [...new Set(filtered.map((i) => i.categoria))].sort();
   const childByParent = new Map<string, PlanilhaItem>();
   itens.forEach((i) => { if (i.itemPaiId) childByParent.set(i.itemPaiId, i); });
   const codigoById = new Map<string, string>();
