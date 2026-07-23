@@ -316,11 +316,29 @@ export async function createAtestadoFull(payload: NewAtestadoPayload): Promise<s
   return atestadoId;
 }
 
+function parseCode(c: string): number[] {
+  return c.replace(/[ab]$/i, "").split(".").map((n) => parseInt(n) || 0);
+}
+
+export function compareCodigo(a: PlanilhaItem, b: PlanilhaItem): number {
+  const aParts = parseCode(a.codigo);
+  const bParts = parseCode(b.codigo);
+  for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+    const diff = (aParts[i] ?? 0) - (bParts[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  const aHasA = /a$/i.test(a.codigo);
+  const bHasB = /b$/i.test(b.codigo);
+  if (aHasA && bHasB) return -1;
+  if (/b$/i.test(a.codigo) && /a$/i.test(b.codigo)) return 1;
+  return 0;
+}
+
 export async function listPlanilhaItems(): Promise<PlanilhaItem[]> {
-  const { data, error } = await supabase
-    .from("planilha_items").select("*").order("categoria").order("codigo");
+  const { data, error } = await supabase.from("planilha_items").select("*");
   if (error) throw error;
-  return (data as unknown as PlanilhaRow[]).map(mapPlanilhaItem);
+  const items = (data as unknown as PlanilhaRow[]).map(mapPlanilhaItem);
+  return items.sort(compareCodigo);
 }
 
 export async function savePlanilhaItem(userId: string, item: Partial<PlanilhaItem> & { id?: string }): Promise<PlanilhaItem> {
