@@ -92,7 +92,7 @@ function OrdemBadge({ id, ordem }: { id: string; ordem: number }) {
         setEditing(true);
       }}
     >
-      {mut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : `AT-${String(ordem).padStart(2, "0")}`}
+      {mut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : ordem > 0 ? `AT-${String(ordem).padStart(2, "0")}` : "AT-—"}
     </Badge>
   );
 }
@@ -249,7 +249,7 @@ function AtestadosListPage() {
                   filtered.map((a) => {
                     const sc = statusConfig[a.status];
                     const displayNumero = a.numeroCat ?? a.numero;
-                    const seq = a.ordem ?? fallbackSeq.get(a.id) ?? 0;
+                    const seq = a.ordem ?? 0;
                     return (
                       <TableRow key={a.id}>
                         <TableCell>
