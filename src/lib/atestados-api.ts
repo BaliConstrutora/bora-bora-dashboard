@@ -165,7 +165,9 @@ export async function getAtestadoById(id: string): Promise<Atestado | null> {
 }
 
 export async function deleteAtestado(id: string) {
-  const { error } = await supabase.from("atestados").delete().eq("id", id);
+  const { error } = await supabase.rpc("delete_atestado_with_reversal", {
+    atestado_id: id,
+  } as never);
   if (error) throw error;
 }
 

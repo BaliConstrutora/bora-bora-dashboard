@@ -1,21 +1,32 @@
-# Plano: Reordenar Planilha de Quantidades por Código Numérico
-
 ## Objetivo
-Alterar a ordenação da Planilha de Quantidades para que os itens sejam listados globalmente pelo código numérico (1.1, 1.2, 1.3, 1.6, 1.9a, 1.9b, 2.1...), e o cabeçalho de categoria apareça apenas quando a categoria muda ao percorrer essa ordem — sem agrupar itens da mesma categoria em bloco.
+Ao excluir um atestado, reverter seu impacto na Planilha de Quantidades de forma atômica: subtrair quantidades, decrementar contadores e remover itens que ficarem zerados.
+
+## Abordagem
+Como o cliente Supabase não suporta transações no browser, criar uma função Postgres (`SECURITY DEFINER`) que faz tudo em uma única transação, e chamá-la via RPC no `deleteAtestado`.
 
 ## Alterações
 
-### 1. `src/lib/atestados-api.ts` — ordenação client-side
-- Remover `.order("categoria").order("codigo")` da consulta `listPlanilhaItems`.
-- Adicionar funções auxiliares:
-  - `parseCode(codigo: string): number[]` — remove sufixo `a`/`b`, divide por `.` e converte para inteiros.
-  - `compareCodigo(a: PlanilhaItem, b: PlanilhaItem): number` — compara parte a parte; se iguais, `a` vem antes de `b`.
-- Aplicar `items.sort(compareCodigo)` antes de retornar os dados mapeados.
+### 1. Migração — nova função `public.delete_atestado_with_reversal(atestado_id uuid)`
+Em uma transação (função plpgsql):
+1. Selecionar todos os `servicos_extraidos` do atestado com `status = 'confirmado'` e `planilha_item_id IS NOT NULL`.
+2. Para cada serviço:
+   - `UPDATE planilha_items SET quantidade = quantidade - s.quantidade_sugerida, atestados_count = GREATEST(atestados_count - 1, 0) WHERE id = s.planilha_item_id`.
+3. `DELETE FROM planilha_items WHERE id IN (...impactados...) AND quantidade <= 0` (recalcula `valor_total` implicitamente se necessário — manter simples: apenas quantidade).
+4. `DELETE FROM atestados WHERE id = atestado_id` (cascata remove `servicos_extraidos` e `aditivos`).
+5. Verificação de autorização: checar `auth.uid()` contra `atestados.user_id` para evitar exclusão indevida via SECURITY DEFINER.
+6. `GRANT EXECUTE ... TO authenticated`.
 
-### 2. `src/routes/_authenticated/atestados/planilha.tsx` — renderização com cabeçalhos dinâmicos
-- Substituir o agrupamento atual (`categoriesInFiltered.map(...)`) por uma única lista ordenada numericamente.
-- Inserir uma linha de cabeçalho de categoria apenas quando `item.categoria` for diferente da categoria do item anterior.
-- Manter todos os comportamentos existentes: filtros, ações, badge "Auto m³", popover de atestados, edição e exclusão.
+Observação: itens `Xa`/`Xb` gerados por Fresagem são tratados normalmente — cada um tem seu próprio `planilha_item_id` no serviço correspondente (o par é criado via `sendServicoToPlanilha`, que só vincula um deles ao serviço). Somente o item vinculado será revertido; o par órfão permanecerá. Isso já é o comportamento atual do sistema e está fora do escopo desta correção.
 
-## Resultado esperado
-A planilha será exibida em ordem numérica global e os cabeçalhos de categoria seguirão essa sequência, refletindo a estrutura real de uma planilha de quantidades de obras.
+### 2. `src/lib/atestados-api.ts` — `deleteAtestado`
+Substituir o `.from("atestados").delete()` por:
+```ts
+const { error } = await supabase.rpc("delete_atestado_with_reversal", { atestado_id: id });
+if (error) throw error;
+```
+
+### 3. Invalidação de cache
+Nenhuma mudança necessária nos consumidores — os locais que chamam `deleteAtestado` já invalidam `["atestados"]`. Adicionar invalidação de `["planilha"]` na mutation de exclusão em `src/routes/_authenticated/atestados/index.tsx` para refletir as quantidades revertidas imediatamente.
+
+## Resultado
+Excluir um atestado devolve corretamente as quantidades à planilha, decrementa o contador de atestados por item e remove itens que ficaram zerados — tudo atomicamente no banco.
