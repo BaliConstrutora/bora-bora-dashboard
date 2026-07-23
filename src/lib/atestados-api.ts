@@ -619,3 +619,56 @@ export async function sendServicoToPlanilha(
 
   return { planilhaItemId, mainCodigo, fresagem, childCodigo, childQuantidade };
 }
+
+export async function removeAtestadoFromPlanilhaItem(
+  planilhaItemId: string,
+  atestadoId: string
+): Promise<void> {
+  const { data: servicos, error: sErr } = await supabase
+    .from("servicos_extraidos")
+    .select("id, quantidade_sugerida")
+    .eq("planilha_item_id", planilhaItemId)
+    .eq("atestado_id", atestadoId)
+    .eq("status", "confirmado");
+  if (sErr) throw sErr;
+  if (!servicos || servicos.length === 0) {
+    throw new Error("Vínculo não encontrado entre atestado e item da planilha.");
+  }
+
+  const totalQtd = servicos.reduce((acc, s) => acc + (s.quantidade_sugerida ?? 0), 0);
+
+  const { data: item, error: iErr } = await supabase
+    .from("planilha_items")
+    .select("id, quantidade, atestados_count")
+    .eq("id", planilhaItemId)
+    .single();
+  if (iErr) throw iErr;
+
+  const newQtd = (item.quantidade ?? 0) - totalQtd;
+  const newCount = Math.max((item.atestados_count ?? 0) - 1, 0);
+
+  const servicoIds = servicos.map((s) => s.id);
+  const { error: uSErr } = await supabase
+    .from("servicos_extraidos")
+    .update({ status: "pendente", planilha_item_id: null })
+    .in("id", servicoIds);
+  if (uSErr) throw uSErr;
+
+  if (newQtd <= 0) {
+    const { error: delErr } = await supabase
+      .from("planilha_items")
+      .delete()
+      .eq("id", planilhaItemId);
+    if (delErr) throw delErr;
+  } else {
+    const { error: updErr } = await supabase
+      .from("planilha_items")
+      .update({
+        quantidade: newQtd,
+        atestados_count: newCount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", planilhaItemId);
+    if (updErr) throw updErr;
+  }
+}
