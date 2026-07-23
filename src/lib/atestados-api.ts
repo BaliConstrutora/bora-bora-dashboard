@@ -399,31 +399,55 @@ export async function listPlanilhaItems(): Promise<PlanilhaItem[]> {
   if (error) throw error;
   const items = (data as unknown as PlanilhaRow[]).map(mapPlanilhaItem);
 
-  // Reconcile atestados_count against actual confirmed servicos linked to still-existing atestados.
+  // Reconcile atestados_count AND quantidade against actual confirmed servicos
+  // linked to still-existing atestados.
   const { data: linkRows, error: linkErr } = await supabase
     .from("servicos_extraidos")
-    .select("planilha_item_id, atestados!inner(id)")
+    .select("planilha_item_id, quantidade_sugerida, atestados!inner(id)")
     .eq("status", "confirmado")
     .not("planilha_item_id", "is", null);
   if (linkErr) throw linkErr;
   const counts = new Map<string, number>();
-  for (const r of (linkRows ?? []) as unknown as Array<{ planilha_item_id: string }>) {
+  const totals = new Map<string, number>();
+  for (const r of (linkRows ?? []) as unknown as Array<{ planilha_item_id: string; quantidade_sugerida: number | string | null }>) {
     if (!r.planilha_item_id) continue;
     counts.set(r.planilha_item_id, (counts.get(r.planilha_item_id) ?? 0) + 1);
+    totals.set(r.planilha_item_id, (totals.get(r.planilha_item_id) ?? 0) + num(r.quantidade_sugerida));
   }
-  const mismatches = items.filter((it) => (it.atestadosCount ?? 0) !== (counts.get(it.id) ?? 0));
-  if (mismatches.length > 0) {
-    await Promise.all(
-      mismatches.map((it) => {
-        const real = counts.get(it.id) ?? 0;
-        it.atestadosCount = real;
-        return supabase
+  const EPS = 1e-6;
+  const toDelete: string[] = [];
+  const toUpdate: Array<{ id: string; realCount: number; realTotal: number }> = [];
+  for (const it of items) {
+    const realCount = counts.get(it.id) ?? 0;
+    const realTotal = totals.get(it.id) ?? 0;
+    const countMismatch = (it.atestadosCount ?? 0) !== realCount;
+    const qtyMismatch = Math.abs(num(it.quantidade) - realTotal) > EPS;
+    if (!countMismatch && !qtyMismatch) continue;
+    if (realTotal <= 0) {
+      toDelete.push(it.id);
+    } else {
+      toUpdate.push({ id: it.id, realCount, realTotal });
+      it.atestadosCount = realCount;
+      it.quantidade = realTotal;
+    }
+  }
+  if (toDelete.length > 0 || toUpdate.length > 0) {
+    await Promise.all([
+      ...(toDelete.length > 0
+        ? [supabase.from("planilha_items").delete().in("id", toDelete)]
+        : []),
+      ...toUpdate.map((u) =>
+        supabase
           .from("planilha_items")
-          .update({ atestados_count: real } as never)
-          .eq("id", it.id);
-      }),
-    );
+          .update({ atestados_count: u.realCount, quantidade: u.realTotal } as never)
+          .eq("id", u.id),
+      ),
+    ]);
   }
+  const deletedSet = new Set(toDelete);
+  const filtered = items.filter((it) => !deletedSet.has(it.id));
+  items.length = 0;
+  items.push(...filtered);
 
   return items.sort(compareCodigo);
 }
