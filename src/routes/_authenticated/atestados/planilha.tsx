@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useState } from "react";
-import { Plus, Search, Pencil, Trash2, X, Check, Table2, Layers, FileCheck, Loader2, ArrowRight, Link2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, X, Check, Table2, Layers, FileCheck, Loader2, ArrowRight, Link2, ChevronDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,67 +18,71 @@ import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { PlanilhaItem } from "@/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { listPlanilhaItems, savePlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId, listAtestados, getAtestadosByPlanilhaItem, compareCodigo } from "@/lib/atestados-api";
+import { listPlanilhaItems, savePlanilhaItem, deletePlanilhaItem, listCategoriasPersonalizadas, createCategoriaPersonalizada, getCurrentUserId, listAtestados, getAtestadosByPlanilhaItem, compareCodigo, removeAtestadoFromPlanilhaItem } from "@/lib/atestados-api";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/atestados/planilha")({
   head: () => ({ meta: [{ title: "Planilha de Quantidades — Bora Bora" }] }),
   component: PlanilhaPage,
 });
 
-function AtestadosPopover({ itemId, count, seqMap }: { itemId: string; count: number; seqMap: Map<string, string> }) {
-  const [open, setOpen] = useState(false);
+function AtestadosExpandedList({
+  itemId,
+  seqMap,
+  onRemove,
+  isRemoving,
+}: {
+  itemId: string;
+  seqMap: Map<string, string>;
+  onRemove: (atestadoId: string) => void;
+  isRemoving: (atestadoId: string) => boolean;
+}) {
   const { data, isLoading } = useQuery({
     queryKey: ["atestados-por-item", itemId],
     queryFn: () => getAtestadosByPlanilhaItem(itemId),
-    enabled: open,
   });
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Badge variant="secondary" role="button" className="text-[10px] cursor-pointer hover:bg-secondary/70 transition-colors">
-          {count} atestado(s)
-        </Badge>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="px-3 py-2 border-b">
-          <p className="text-xs font-semibold">Atestados vinculados</p>
+    <div className="border-l-4 border-primary bg-muted/30 px-4 py-3">
+      {isLoading ? (
+        <div className="flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando atestados…
         </div>
-        <div className="max-h-80 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando atestados…
-            </div>
-          ) : !data || data.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">Nenhum atestado vinculado.</p>
-          ) : (
-            <ul className="divide-y">
-              {data.map((a) => (
-                <li key={a.id} className="px-3 py-2.5 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] font-mono">{seqMap.get(a.id) ?? "AT-—"}</Badge>
-                    <span className="font-mono text-xs font-semibold truncate">{a.numero}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">{a.contratante}</p>
-                  <p className="text-xs tabular-nums">
-                    Contribuição: <span className="font-medium text-foreground">{a.quantidade.toLocaleString("pt-BR")} {a.unidade}</span>
-                  </p>
-                  <Link
-                    to="/atestados/$atestadoId"
-                    params={{ atestadoId: a.id }}
-                    onClick={() => setOpen(false)}
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    Ver atestado <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+      ) : !data || data.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-4">Nenhum atestado vinculado.</p>
+      ) : (
+        <ul className="divide-y">
+          {data.map((a) => (
+            <li key={a.id} className="py-2 flex items-center gap-3">
+              <Badge variant="outline" className="text-[10px] font-mono shrink-0">{seqMap.get(a.id) ?? "AT-—"}</Badge>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium truncate">{a.contratante}</p>
+                <p className="text-[11px] text-muted-foreground tabular-nums">
+                  Contribuição: <span className="text-foreground font-medium">{a.quantidade.toLocaleString("pt-BR")} {a.unidade}</span>
+                </p>
+              </div>
+              <Link
+                to="/atestados/$atestadoId"
+                params={{ atestadoId: a.id }}
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline shrink-0"
+              >
+                Ver atestado <ArrowRight className="h-3 w-3" />
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                onClick={() => onRemove(a.id)}
+                disabled={isRemoving(a.id)}
+                title="Remover contribuição deste atestado"
+              >
+                {isRemoving(a.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
