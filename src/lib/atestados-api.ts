@@ -54,6 +54,8 @@ export type AtestadoDoPlanilhaItem = {
 };
 
 export async function getAtestadosByPlanilhaItem(planilhaItemId: string): Promise<AtestadoDoPlanilhaItem[]> {
+  const cleanup = await cleanupOrphansForPlanilhaItem(planilhaItemId);
+  if (cleanup.deleted) return [];
   const { data, error } = await supabase
     .from("servicos_extraidos")
     .select("quantidade_sugerida, unidade_sugerida, atestados!inner(id, numero, contratante, created_at)")
@@ -72,6 +74,62 @@ export async function getAtestadosByPlanilhaItem(planilhaItemId: string): Promis
       quantidade: num(r.quantidade_sugerida),
       unidade: r.unidade_sugerida ?? "",
     }));
+}
+
+async function cleanupOrphansForPlanilhaItem(planilhaItemId: string): Promise<{ deleted: boolean }> {
+  const { data: servicos, error: sErr } = await supabase
+    .from("servicos_extraidos")
+    .select("id, atestado_id, quantidade_sugerida")
+    .eq("planilha_item_id", planilhaItemId)
+    .eq("status", "confirmado");
+  if (sErr) throw sErr;
+  const rows = (servicos ?? []) as unknown as Array<{ id: string; atestado_id: string; quantidade_sugerida: number | string | null }>;
+  if (rows.length === 0) return { deleted: false };
+
+  const atestadoIds = Array.from(new Set(rows.map((r) => r.atestado_id)));
+  const { data: existingAts, error: aErr } = await supabase
+    .from("atestados")
+    .select("id")
+    .in("id", atestadoIds);
+  if (aErr) throw aErr;
+  const existingSet = new Set((existingAts ?? []).map((a) => (a as { id: string }).id));
+  const orphans = rows.filter((r) => !existingSet.has(r.atestado_id));
+  if (orphans.length === 0) return { deleted: false };
+
+  const qtdOrfa = orphans.reduce((sum, r) => sum + num(r.quantidade_sugerida), 0);
+  const cntOrfa = orphans.length;
+
+  const { data: itemRow, error: iErr } = await supabase
+    .from("planilha_items")
+    .select("quantidade, atestados_count")
+    .eq("id", planilhaItemId)
+    .maybeSingle();
+  if (iErr) throw iErr;
+  if (!itemRow) return { deleted: true };
+  const cur = itemRow as unknown as { quantidade: number | string; atestados_count: number | null };
+  const novaQtd = Math.max(num(cur.quantidade) - qtdOrfa, 0);
+  const novoCount = Math.max((cur.atestados_count ?? 0) - cntOrfa, 0);
+
+  if (novaQtd <= 0) {
+    const { error: delErr } = await supabase.from("planilha_items").delete().eq("id", planilhaItemId);
+    if (delErr) throw delErr;
+    return { deleted: true };
+  }
+
+  const { error: updErr } = await supabase
+    .from("planilha_items")
+    .update({ quantidade: novaQtd, atestados_count: novoCount } as never)
+    .eq("id", planilhaItemId);
+  if (updErr) throw updErr;
+
+  const orphanIds = orphans.map((o) => o.id);
+  const { error: sUpdErr } = await supabase
+    .from("servicos_extraidos")
+    .update({ planilha_item_id: null } as never)
+    .in("id", orphanIds);
+  if (sUpdErr) throw sUpdErr;
+
+  return { deleted: false };
 }
 
 function mapAditivo(r: AditivoRow): Aditivo {
@@ -340,6 +398,33 @@ export async function listPlanilhaItems(): Promise<PlanilhaItem[]> {
   const { data, error } = await supabase.from("planilha_items").select("*");
   if (error) throw error;
   const items = (data as unknown as PlanilhaRow[]).map(mapPlanilhaItem);
+
+  // Reconcile atestados_count against actual confirmed servicos linked to still-existing atestados.
+  const { data: linkRows, error: linkErr } = await supabase
+    .from("servicos_extraidos")
+    .select("planilha_item_id, atestados!inner(id)")
+    .eq("status", "confirmado")
+    .not("planilha_item_id", "is", null);
+  if (linkErr) throw linkErr;
+  const counts = new Map<string, number>();
+  for (const r of (linkRows ?? []) as unknown as Array<{ planilha_item_id: string }>) {
+    if (!r.planilha_item_id) continue;
+    counts.set(r.planilha_item_id, (counts.get(r.planilha_item_id) ?? 0) + 1);
+  }
+  const mismatches = items.filter((it) => (it.atestadosCount ?? 0) !== (counts.get(it.id) ?? 0));
+  if (mismatches.length > 0) {
+    await Promise.all(
+      mismatches.map((it) => {
+        const real = counts.get(it.id) ?? 0;
+        it.atestadosCount = real;
+        return supabase
+          .from("planilha_items")
+          .update({ atestados_count: real } as never)
+          .eq("id", it.id);
+      }),
+    );
+  }
+
   return items.sort(compareCodigo);
 }
 
