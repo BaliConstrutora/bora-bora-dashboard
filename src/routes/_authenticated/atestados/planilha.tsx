@@ -280,17 +280,25 @@ function PlanilhaPage() {
                   {filtered.length === 0 ? (
                     <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum item encontrado.</TableCell></TableRow>
                   ) : (
-                    categoriesInFiltered.map((cat) => (
-                      <Fragment key={cat}>
-                        <TableRow className="bg-muted/40 hover:bg-muted/40">
-                          <TableCell colSpan={7} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{cat}</TableCell>
-                        </TableRow>
-                        {filtered.filter((i) => i.categoria === cat).map((item) => {
-                          const isAuto = !!item.itemPaiId;
-                          const child = childByParent.get(item.id);
-                          const paiCodigo = item.itemPaiId ? codigoById.get(item.itemPaiId) : undefined;
-                          return (
-                            <TableRow key={item.id} className={isAuto ? "bg-amber-50/40" : undefined}>
+                    (() => {
+                      const sortedItems = [...filtered].sort(compareCodigo);
+                      let lastCategory = "";
+                      return sortedItems.map((item) => {
+                        const showHeader = item.categoria !== lastCategory;
+                        lastCategory = item.categoria;
+                        const isAuto = !!item.itemPaiId;
+                        const child = childByParent.get(item.id);
+                        const paiCodigo = item.itemPaiId ? codigoById.get(item.itemPaiId) : undefined;
+                        return (
+                          <Fragment key={item.id}>
+                            {showHeader && (
+                              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                                <TableCell colSpan={7} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  {item.categoria}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                            <TableRow className={isAuto ? "bg-amber-50/40" : undefined}>
                               <TableCell className="font-mono text-xs">
                                 <div className="flex items-center gap-1.5">
                                   {isAuto && (
@@ -354,10 +362,10 @@ function PlanilhaPage() {
                                 </div>
                               </TableCell>
                             </TableRow>
-                          );
-                        })}
-                      </Fragment>
-                    ))
+                          </Fragment>
+                        );
+                      });
+                    })()
                   )}
                 </TableBody>
               </Table>
