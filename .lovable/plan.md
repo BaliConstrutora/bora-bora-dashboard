@@ -1,35 +1,58 @@
-## Objetivo
-Fazer com que o número sequencial exibido (AT-01, AT-02…) reflita o campo `ordem` definido manualmente, e não a ordem de criação do atestado.
+## Goal
+Replace the Popover-based atestados viewer in the Planilha de Quantidades page with an inline expandable row, and add a "remove atestado from item" action that reverses its contribution to the planilha item.
 
-## Alterações
+## Changes
 
-### 1. `src/routes/_authenticated/atestados/planilha.tsx`
-Substituir a construção do `seqMap` que ordena por `createdAt` e usa o índice do array:
+### 1. `src/lib/atestados-api.ts`
+Add `removeAtestadoFromPlanilhaItem(planilhaItemId, atestadoId)`:
+- Find the `servicos_extraidos` row linking that atestado to that planilha item (status `confirmado`, matching `planilha_item_id` and `atestado_id`).
+- Read its `quantidade_sugerida`.
+- Update the `planilha_items` row: subtract the quantity from `quantidade`, decrement `atestados_count` (floor at 0). If resulting `quantidade <= 0`, delete the planilha item.
+- Update the `servicos_extraidos` row: set `status = 'pendente'`, `planilha_item_id = null`.
 
+### 2. `src/routes/_authenticated/atestados/planilha.tsx`
+
+Remove:
+- `AtestadosPopover` component.
+- `Popover`, `PopoverContent`, `PopoverTrigger` imports.
+
+Add imports: `ChevronDown`, `cn` from `@/lib/utils`, `removeAtestadoFromPlanilhaItem`.
+
+State + toggle:
 ```ts
-const seqMap = new Map<string, string>();
-[...atestadosList]
-  .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""))
-  .forEach((a, i) => seqMap.set(a.id, `AT-${String(i + 1).padStart(2, "0")}`));
+const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+function toggleExpand(id: string) { /* immutable Set toggle */ }
 ```
 
-Por:
+Replace the popover trigger in the Atestados cell with a button containing:
+- `<Badge className="... whitespace-nowrap ...">{count} atestado(s)</Badge>`
+- `<ChevronDown>` rotating 180° when expanded.
 
+After the item `<TableRow>` (inside the same `<Fragment>`), conditionally render an expand row with `colSpan={7}` containing `<AtestadosExpandedList>`.
+
+New in-file component `AtestadosExpandedList({ itemId, seqMap, onRemove })`:
+- `useQuery(["atestados-por-item", itemId], () => getAtestadosByPlanilhaItem(itemId))`.
+- Container with left blue border (`border-l-4 border-primary bg-muted/30 px-4 py-3`).
+- Loading: centered spinner + "Carregando atestados…".
+- Empty: "Nenhum atestado vinculado."
+- Each row: AT-XX monospace badge, contratante, "Contribuição: {qtd} {unidade}", "Ver atestado →" Link to `/atestados/$atestadoId`, red ghost trash button calling `onRemove(atestadoId)`.
+
+Handler in `PlanilhaPage`:
 ```ts
-const seqMap = new Map<string, string>();
-atestadosList.forEach((a) => {
-  const seq = a.ordem ?? 0;
-  seqMap.set(a.id, seq > 0 ? `AT-${String(seq).padStart(2, "0")}` : "AT-—");
+const removeMut = useMutation({
+  mutationFn: ({ planilhaItemId, atestadoId }) => removeAtestadoFromPlanilhaItem(planilhaItemId, atestadoId),
+  onSuccess: (_d, vars) => {
+    toast.success("Atestado removido do item da Planilha.");
+    queryClient.invalidateQueries({ queryKey: ["planilha"] });
+    queryClient.invalidateQueries({ queryKey: ["atestados-por-item", vars.planilhaItemId] });
+  },
+  onError: (e: Error) => toast.error(e.message),
 });
 ```
 
-O tipo `Atestado` já possui `ordem?: number | null`, então o cast sugerido não é necessário.
+Only the Atestados column and the row-below rendering change; all other columns, sorting, and category headers stay intact. The "Auto" badge branch for child items keeps its current non-expandable rendering.
 
-### 2. `src/routes/_authenticated/atestados/index.tsx`
-- Remover o `fallbackSeq` baseado no índice do array ordenado por `createdAt`.
-- Criar `seqMap` a partir do campo `ordem`, com o mesmo tratamento de "AT-—" quando não houver ordem.
-- Atualizar a exibição da coluna "Seq." para usar `seqMap.get(a.id)`.
-- Ajustar o componente `OrdemBadge` para renderizar `"AT-—"` quando `ordem <= 0`, mantendo consistência com o popover da planilha.
-
-## Resultado
-Tanto na lista de atestados quanto no popover da Planilha de Quantidades, o número sequencial será o valor manual definido no campo `ordem`. Itens sem `ordem` aparecerão como `AT-—` em vez de um índice baseado na data de criação.
+## Notes
+- Portuguese pt-BR strings throughout.
+- `whitespace-nowrap` on Badge prevents wrapping at narrow widths.
+- No DB schema changes.
