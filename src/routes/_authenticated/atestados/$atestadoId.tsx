@@ -541,6 +541,96 @@ function AtestadoDetailPage() {
             </CardContent>
           </Card>
 
+          {(isEditing || atestado.isConsorcio) && (
+            <Card className={atestado.isConsorcio ? "border-amber-200 bg-amber-50/30" : undefined}>
+              <CardHeader><CardTitle>Dados do Consórcio</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {isEditing && editForm ? (
+                  <>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium">Este atestado é de um Consórcio</p>
+                        <p className="text-xs text-muted-foreground">Ative para registrar a participação da Bali.</p>
+                      </div>
+                      <Switch checked={editForm.isConsorcio} onCheckedChange={(v) => setField("isConsorcio", v)} />
+                    </div>
+                    {editForm.isConsorcio && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="sm:col-span-2">
+                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Nome do Consórcio</label>
+                          <Input className="mt-1" value={editForm.nomeConsorcio} onChange={(e) => setField("nomeConsorcio", e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Participação da Bali (%)</label>
+                          <Input className="mt-1" type="number" step="0.01" value={editForm.percentualParticipacao} onChange={(e) => setField("percentualParticipacao", e.target.value)} />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Empresas Parceiras</label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              value={empresaInputEdit}
+                              onChange={(e) => setEmpresaInputEdit(e.target.value)}
+                              placeholder="Nome da empresa"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  const v = empresaInputEdit.trim();
+                                  if (!v || editForm.empresasParceiras.includes(v)) return;
+                                  setField("empresasParceiras", [...editForm.empresasParceiras, v]);
+                                  setEmpresaInputEdit("");
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                const v = empresaInputEdit.trim();
+                                if (!v || editForm.empresasParceiras.includes(v)) return;
+                                setField("empresasParceiras", [...editForm.empresasParceiras, v]);
+                                setEmpresaInputEdit("");
+                              }}
+                            >Adicionar</Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {editForm.empresasParceiras.map((e) => (
+                              <Badge key={e} variant="outline" className="border-amber-300 text-amber-700 bg-amber-50 gap-1">
+                                {e}
+                                <button
+                                  type="button"
+                                  onClick={() => setField("empresasParceiras", editForm.empresasParceiras.filter((x) => x !== e))}
+                                  aria-label={`Remover ${e}`}
+                                  className="hover:text-red-600"
+                                ><X className="h-3 w-3" /></button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <FieldRow label="Nome do Consórcio"><p>{atestado.nomeConsorcio || "—"}</p></FieldRow>
+                    <FieldRow label="Participação da Bali (%)"><p>{atestado.percentualParticipacao != null ? `${atestado.percentualParticipacao.toLocaleString("pt-BR")}%` : "—"}</p></FieldRow>
+                    <FieldRow label="Empresas Parceiras">
+                      {atestado.empresasParceiras && atestado.empresasParceiras.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {atestado.empresasParceiras.map((e) => (
+                            <Badge key={e} variant="outline" className="border-amber-300 text-amber-700 bg-amber-50">{e}</Badge>
+                          ))}
+                        </div>
+                      ) : <p>—</p>}
+                    </FieldRow>
+                    {atestado.percentualParticipacao != null && (
+                      <p className="text-xs text-muted-foreground">Quantitativos ajustados para {atestado.percentualParticipacao.toLocaleString("pt-BR")}% da participação da Bali.</p>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader><CardTitle>Aditivos</CardTitle></CardHeader>
             <CardContent>
