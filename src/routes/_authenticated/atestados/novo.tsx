@@ -539,7 +539,15 @@ function NovoAtestadoPage() {
     }
   }
 
-  function handleProcessar() { void runExtraction(); }
+  function handleProcessar() {
+    if (isConsorcio) {
+      const pct = Number(percentualParticipacao);
+      if (!nomeConsorcio.trim()) { toast.error("Informe o nome do consórcio."); return; }
+      if (!Number.isFinite(pct) || pct <= 0 || pct > 100) { toast.error("Informe a participação da Bali (0-100%)."); return; }
+      if (empresasParceiras.length < 1) { toast.error("Adicione pelo menos uma empresa parceira."); return; }
+    }
+    void runExtraction();
+  }
   async function handleConfirm(id: string) {
     const servico = servicos.find((s) => s.id === id);
     if (!servico) return;
