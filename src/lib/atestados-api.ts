@@ -180,6 +180,10 @@ function mapAtestado(r: AtestadoRow, aditivos: Aditivo[] = [], servicos: Servico
     registroCreaRt: r.registro_crea_rt ?? undefined,
     finalidade: r.finalidade ?? undefined,
     ordem: r.ordem ?? null,
+    isConsorcio: r.is_consorcio ?? false,
+    nomeConsorcio: r.nome_consorcio ?? undefined,
+    percentualParticipacao: r.percentual_participacao != null ? num(r.percentual_participacao) : undefined,
+    empresasParceiras: r.empresas_parceiras ?? undefined,
     aditivos, servicos,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
@@ -257,6 +261,10 @@ export interface UpdateAtestadoPatch {
   status?: AtestadoStatus;
   descricao?: string;
   observacoes?: string;
+  isConsorcio?: boolean;
+  nomeConsorcio?: string | null;
+  percentualParticipacao?: number | null;
+  empresasParceiras?: string[] | null;
 }
 
 type AtestadoUpdate = Partial<AtestadoRow>;
@@ -284,6 +292,10 @@ export async function updateAtestado(id: string, patch: UpdateAtestadoPatch): Pr
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.descricao !== undefined) row.descricao = patch.descricao;
   if (patch.observacoes !== undefined) row.observacoes = patch.observacoes || null;
+  if (patch.isConsorcio !== undefined) row.is_consorcio = patch.isConsorcio;
+  if (patch.nomeConsorcio !== undefined) row.nome_consorcio = patch.nomeConsorcio || null;
+  if (patch.percentualParticipacao !== undefined) row.percentual_participacao = patch.percentualParticipacao;
+  if (patch.empresasParceiras !== undefined) row.empresas_parceiras = patch.empresasParceiras;
   const { error } = await supabase.from("atestados").update(row as never).eq("id", id);
   if (error) throw error;
 }
@@ -341,6 +353,10 @@ export interface NewAtestadoPayload {
     tipo_contratante: TipoContratante | null; numero_contrato: string | null;
     numero_pregao: string | null; local_execucao: string | null;
     registro_crea_rt: string | null; finalidade: FinalidadeAtestado | null;
+    is_consorcio?: boolean;
+    nome_consorcio?: string | null;
+    percentual_participacao?: number | null;
+    empresas_parceiras?: string[] | null;
   };
   aditivos: Array<{
     user_id: string; numero: number; tipo: AditivoTipo;
