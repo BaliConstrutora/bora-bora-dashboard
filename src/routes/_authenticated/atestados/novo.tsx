@@ -814,12 +814,31 @@ function NovoAtestadoPage() {
       )}
       {step === 3 && (
         <div className="space-y-4">
+          {isConsorcio && percentualParticipacao && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
+              <span className="text-amber-700 text-sm">
+                ⚠️ Consórcio: {nomeConsorcio} — Participação Bali: {Number(percentualParticipacao).toLocaleString("pt-BR")}%. Os quantitativos foram ajustados proporcionalmente.
+              </span>
+            </div>
+          )}
           <div className="flex items-start justify-between gap-4">
             <div><h2 className="text-base font-semibold">{servicos.length} serviços extraídos — {formValues.numeroCat || "Atestado"} · {formValues.contratante || ""}</h2><p className="text-sm text-muted-foreground mt-0.5">Revise, edite e confirme cada item para a Planilha de Quantidades</p></div>
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
           <div className="space-y-3">
-            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} match={matchMap[servico.id]} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} isManual={manuaisIds.has(servico.id)} />))}
+            {servicos.map((servico) => (
+              <ServiceCard
+                key={servico.id}
+                servico={servico}
+                match={matchMap[servico.id]}
+                onConfirm={handleConfirm}
+                onIgnore={handleIgnore}
+                onUpdate={handleUpdate}
+                categorias={todasCategorias}
+                isManual={manuaisIds.has(servico.id)}
+                consorcio={isConsorcio && Number(percentualParticipacao) > 0 ? { pct: Number(percentualParticipacao), rawQtd: rawQtdMap[servico.id] } : undefined}
+              />
+            ))}
           </div>
           {!showManualForm ? (
             <div className="flex justify-center pt-2">
