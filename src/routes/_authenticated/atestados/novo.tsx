@@ -489,6 +489,9 @@ function NovoAtestadoPage() {
       setProgress((p) => ({ ...p, identify: "done", correlate: "active" }));
 
       const planilha = await listPlanilhaItems().catch(() => []);
+      const pctNum = Number(percentualParticipacao);
+      const factor = isConsorcio && Number.isFinite(pctNum) && pctNum > 0 ? pctNum / 100 : 1;
+      const nextRawMap: Record<string, number> = {};
       const svcs: ServicoExtraido[] = (ext.servicos ?? []).map((s, i) => {
         const codigo = trimOrUndef(s.codigo_sugerido);
         const desc = trimOrUndef(s.descricao_sugerida);
@@ -496,19 +499,23 @@ function NovoAtestadoPage() {
         const quantidade = normalizeQuantidade(s.quantidade_sugerida);
         const categoria = normalizeCategoria(s.categoria_sugerida);
         const match = planilha.find((p) => (codigo && p.codigo === codigo) || (desc && canon(p.descricao) === canon(desc)));
+        const id = crypto.randomUUID();
+        const adjustedQty = quantidade != null ? Math.round(quantidade * factor * 100) / 100 : undefined;
+        if (quantidade != null) nextRawMap[id] = quantidade;
         return {
-          id: crypto.randomUUID(),
+          id,
           descricaoOriginal: desc ?? `Serviço ${i + 1}`,
           quantidadeOriginal: quantidade != null ? `${quantidade} ${unidade ?? ""}`.trim() : "",
           codigoSugerido: codigo,
           descricaoSugerida: desc,
           unidadeSugerida: unidade,
-          quantidadeSugerida: quantidade,
+          quantidadeSugerida: adjustedQty,
           categoriaSugerida: categoria,
           planilhaItemId: match?.id,
           status: "pendente" as const,
         };
       });
+      setRawQtdMap(nextRawMap);
       const nextMatchMap: Record<string, MatchInfo | null> = {};
       for (const s of svcs) {
         const best = findBestMatch(s, planilha);
