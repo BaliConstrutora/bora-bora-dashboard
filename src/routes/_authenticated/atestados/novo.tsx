@@ -537,9 +537,12 @@ function NovoAtestadoPage() {
       setStep(3);
     } catch (err) {
       console.error(err);
-      toast.error("Não foi possível extrair os dados automaticamente. Preencha manualmente.");
-      setStep(1);
+      toast.warning("A IA não conseguiu extrair os dados. Adicione os serviços manualmente.");
+      setServicos([]);
+      setShowManualForm(true);
+      setStep(3);
     }
+
   }
 
   function handleProcessar() {
