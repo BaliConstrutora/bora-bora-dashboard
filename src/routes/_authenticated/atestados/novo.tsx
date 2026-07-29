@@ -626,6 +626,10 @@ function NovoAtestadoPage() {
           local_execucao: v.localExecucao || null,
           registro_crea_rt: v.registroCreaRt || null,
           finalidade: v.finalidade ?? null,
+          is_consorcio: isConsorcio,
+          nome_consorcio: isConsorcio ? (nomeConsorcio || null) : null,
+          percentual_participacao: isConsorcio && percentualParticipacao ? Number(percentualParticipacao) : null,
+          empresas_parceiras: isConsorcio ? empresasParceiras : null,
         },
         aditivos: aditivos.map((a) => ({
           user_id: uid, numero: a.numero, tipo: a.tipo,
