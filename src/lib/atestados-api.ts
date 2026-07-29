@@ -11,6 +11,10 @@ type AtestadoRow = {
   numero_pregao: string | null; local_execucao: string | null;
   registro_crea_rt: string | null; finalidade: FinalidadeAtestado | null;
   ordem: number | null;
+  is_consorcio: boolean | null;
+  nome_consorcio: string | null;
+  percentual_participacao: number | string | null;
+  empresas_parceiras: string[] | null;
   created_at: string; updated_at: string;
 };
 
