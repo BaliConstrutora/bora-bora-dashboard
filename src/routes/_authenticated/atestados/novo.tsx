@@ -286,7 +286,7 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias, isManual }: {
+function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias, isManual, consorcio }: {
   servico: ServicoExtraido;
   match?: MatchInfo | null;
   onConfirm: (id: string) => void;
@@ -296,7 +296,6 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
   isManual?: boolean;
   consorcio?: { pct: number; rawQtd?: number };
 }) {
-  const consorcio = arguments[0].consorcio as { pct: number; rawQtd?: number } | undefined;
   const isPendente = servico.status === "pendente";
   const isConfirmado = servico.status === "confirmado";
   const isIgnorado = servico.status === "ignorado";
