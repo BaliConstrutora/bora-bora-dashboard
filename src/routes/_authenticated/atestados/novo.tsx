@@ -739,6 +739,79 @@ function NovoAtestadoPage() {
                   <div className="sm:col-span-2"><FormField control={form.control} name="descricao" render={({ field }) => (<FormItem><FormLabel>Descrição Geral *</FormLabel><FormControl><Textarea placeholder="Descreva as atividades executadas..." className="min-h-[80px]" {...field} /></FormControl><FormMessage /></FormItem>)} /></div>
                   <div className="sm:col-span-2"><FormField control={form.control} name="observacoes" render={({ field }) => (<FormItem><FormLabel>Observações</FormLabel><FormControl><Textarea placeholder="Informações adicionais (opcional)..." className="min-h-[60px]" {...field} /></FormControl><FormMessage /></FormItem>)} /></div>
                 </div>
+                <Separator className="my-4" />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">Este atestado é de um Consórcio</p>
+                      <p className="text-xs text-muted-foreground">Ative para registrar a participação da Bali e as empresas parceiras.</p>
+                    </div>
+                    <Switch checked={isConsorcio} onCheckedChange={setIsConsorcio} />
+                  </div>
+                  <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden transition-all duration-300", isConsorcio ? "opacity-100 max-h-[1000px]" : "opacity-0 max-h-0 pointer-events-none")}>
+                    <div className="sm:col-span-2">
+                      <label className="text-sm font-medium">Nome do Consórcio *</label>
+                      <Input className="mt-1" placeholder="Ex: Consórcio Pró Transporte Contagem" value={nomeConsorcio} onChange={(e) => setNomeConsorcio(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Participação da Bali (%) *</label>
+                      <Input className="mt-1" type="number" step="0.01" min={0} max={100} placeholder="Ex: 24,5" value={percentualParticipacao} onChange={(e) => setPercentualParticipacao(e.target.value)} />
+                      <p className="text-xs text-muted-foreground mt-1">Os quantitativos serão multiplicados por este percentual</p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-sm font-medium">Empresas Parceiras</label>
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          placeholder="Nome da empresa"
+                          value={empresaInput}
+                          onChange={(e) => setEmpresaInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const v = empresaInput.trim();
+                              if (!v) return;
+                              if (empresasParceiras.includes(v)) { toast.info("Empresa já adicionada."); return; }
+                              setEmpresasParceiras((prev) => [...prev, v]);
+                              setEmpresaInput("");
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const v = empresaInput.trim();
+                            if (!v) return;
+                            if (empresasParceiras.includes(v)) { toast.info("Empresa já adicionada."); return; }
+                            setEmpresasParceiras((prev) => [...prev, v]);
+                            setEmpresaInput("");
+                          }}
+                        >
+                          Adicionar
+                        </Button>
+                      </div>
+                      {empresasParceiras.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {empresasParceiras.map((e) => (
+                            <Badge key={e} variant="outline" className="border-amber-300 text-amber-700 bg-amber-50 gap-1">
+                              {e}
+                              <button
+                                type="button"
+                                className="text-amber-700 hover:text-red-600"
+                                onClick={() => setEmpresasParceiras((prev) => prev.filter((x) => x !== e))}
+                                aria-label={`Remover ${e}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-1">Adicione ao menos uma empresa parceira.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </Form>
