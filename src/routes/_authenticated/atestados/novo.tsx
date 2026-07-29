@@ -867,8 +867,20 @@ function NovoAtestadoPage() {
           </Card>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" asChild><Link to="/atestados">Cancelar</Link></Button>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => {
+                setServicos([]);
+                setShowManualForm(true);
+                setStep(3);
+              }}
+            >
+              Lançar Manualmente
+            </Button>
             <Button onClick={handleProcessar} disabled={!pdfFile}>Processar com IA →</Button>
           </div>
+
         </div>
       )}
       {step === 2 && (
