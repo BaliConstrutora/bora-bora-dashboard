@@ -25,7 +25,6 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
-import { X } from "lucide-react";
 import type { AtestadoStatus, FinalidadeAtestado, ServicoExtraido, TipoContratante } from "@/types";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 
