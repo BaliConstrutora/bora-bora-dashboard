@@ -61,6 +61,9 @@ Use the following category mapping rules for categoria_sugerida:
 - Use 'Administração Local' for engenheiro de obra, encarregado, equipe administrativa.
 - Use 'Demolição e Remoções' for demolição, remoção de pavimento services.`;
 
+const CONSORCIO_NOTE =
+  "\n\nIf the document mentions a consortium (consórcio), extract all quantities as the TOTAL values from the PDF. The system will apply the participation percentage automatically. Do not pre-calculate the participation percentage.";
+
 const USER_PROMPT = `Extract the CAT data and return ONLY this JSON shape (use null when unknown):
 {
   "numero_cat": string|null,
