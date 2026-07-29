@@ -1,24 +1,64 @@
-## Ajustes no passo 3 de `src/routes/_authenticated/atestados/novo.tsx`
+Ajustar três comportamentos na tela de cadastro de atestado (`src/routes/_authenticated/atestados/novo.tsx`).
 
-Nenhuma outra tela é afetada. Sem mudanças em API, banco ou tipos.
+### 1. Quando a IA falhar, ir para o passo 3 (não voltar ao passo 1)
+No bloco `catch` de `runExtraction` (linhas ~538-542), substituir:
 
-### 1. Mensagem quando a IA não retorna serviços
-No bloco `step === 3`, quando `servicos.length === 0`, exibir um card informativo âmbar (abaixo do banner de consórcio, antes da lista):
+```tsx
+} catch (err) {
+  console.error(err);
+  toast.error("Não foi possível extrair os dados automaticamente. Preencha manualmente.");
+  setStep(1);
+}
+```
 
-> A IA não identificou serviços automaticamente. Adicione manualmente abaixo.
+Por:
 
-O cabeçalho "{n} serviços extraídos …" continua exibido (mostrará "0 serviços extraídos"). A lista `servicos.map(...)` já lida com array vazio.
+```tsx
+} catch (err) {
+  console.error(err);
+  toast.warning("A IA não conseguiu extrair os dados. Adicione os serviços manualmente.");
+  setServicos([]);
+  setShowManualForm(true);
+  setStep(3);
+}
+```
 
-### 2. Botão "Adicionar Serviço Manualmente" sempre visível
-Quando `servicos.length === 0`, abrir o formulário manual automaticamente (`setShowManualForm(true)` no efeito de inicialização do passo 3, apenas uma vez). O botão "+ Adicionar Serviço Manualmente" continua renderizado sempre que o formulário estiver fechado.
+Isso leva o usuário direto à validação manual de serviços, com o formulário manual já aberto.
 
-### 3. Formulário manual — botão verde "Salvar Serviço" e permanecer aberto
-Em `handleAddManual`:
-- Renomear o botão "Adicionar" para **"Salvar Serviço"** (mantém `bg-green-600 hover:bg-green-700 text-white`, adiciona ícone `Check`).
-- Após salvar com sucesso, **não** chamar `setShowManualForm(false)`; apenas resetar `manualForm` para os valores iniciais, mantendo o card aberto para novos lançamentos.
-- Manter o botão "Cancelar" para fechar o formulário.
+### 2. Remover o botão duplicado "Concluído — ir para confirmação" no passo 3
+No rodapé do passo 3 (linhas ~972-982), manter apenas:
 
-### 4. Botão "Concluído — ir para confirmação"
-Na barra de ações do rodapé do passo 3, adicionar um botão primário **"Concluído — ir para confirmação"** ao lado de "Salvar Atestado Completo". Ele chama o mesmo `handleSalvar()` (que já avança para o passo 4 ao terminar). O botão "Salvar Atestado Completo" existente permanece para não quebrar o fluxo atual.
+```tsx
+<div className="flex justify-end gap-3 pt-2">
+  <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
+  <Button onClick={handleSalvar} disabled={saveMut.isPending}>
+    {saveMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+    {saveMut.isPending ? "Salvando..." : "Salvar Atestado Completo"}
+  </Button>
+</div>
+```
 
-Todos os textos em pt-BR. Sem mudanças de estilo global.
+Remover o segundo `<Button onClick={handleSalvar} ...>Concluído — ir para confirmação</Button>`.
+
+### 3. Adicionar botão "Lançar Manualmente" no passo 1
+Na barra de ações do passo 1 (linhas ~865-868), entre "Cancelar" e "Processar com IA →", inserir:
+
+```tsx
+<Button
+  variant="outline"
+  type="button"
+  onClick={() => {
+    setServicos([]);
+    setShowManualForm(true);
+    setStep(3);
+  }}
+>
+  Lançar Manualmente
+</Button>
+```
+
+Isso permite pular o processamento de IA e ir direto ao lançamento manual de serviços.
+
+---
+
+**Escopo:** Apenas `src/routes/_authenticated/atestados/novo.tsx`. Sem alterações em API, banco ou tipos. Textos em pt-BR.

@@ -537,9 +537,12 @@ function NovoAtestadoPage() {
       setStep(3);
     } catch (err) {
       console.error(err);
-      toast.error("Não foi possível extrair os dados automaticamente. Preencha manualmente.");
-      setStep(1);
+      toast.warning("A IA não conseguiu extrair os dados. Adicione os serviços manualmente.");
+      setServicos([]);
+      setShowManualForm(true);
+      setStep(3);
     }
+
   }
 
   function handleProcessar() {
@@ -864,8 +867,20 @@ function NovoAtestadoPage() {
           </Card>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" asChild><Link to="/atestados">Cancelar</Link></Button>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => {
+                setServicos([]);
+                setShowManualForm(true);
+                setStep(3);
+              }}
+            >
+              Lançar Manualmente
+            </Button>
             <Button onClick={handleProcessar} disabled={!pdfFile}>Processar com IA →</Button>
           </div>
+
         </div>
       )}
       {step === 2 && (
@@ -973,13 +988,10 @@ function NovoAtestadoPage() {
             <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
             <Button onClick={handleSalvar} disabled={saveMut.isPending}>
               {saveMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
-              Salvar Atestado Completo
-            </Button>
-            <Button onClick={handleSalvar} disabled={saveMut.isPending} className="bg-primary">
-              {saveMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-              Concluído — ir para confirmação
+              {saveMut.isPending ? "Salvando..." : "Salvar Atestado Completo"}
             </Button>
           </div>
+
         </div>
       )}
       {step === 4 && (
