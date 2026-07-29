@@ -55,6 +55,9 @@ export type AtestadoDoPlanilhaItem = {
   contratante: string;
   quantidade: number;
   unidade: string;
+  isConsorcio?: boolean;
+  nomeConsorcio?: string;
+  percentualParticipacao?: number;
 };
 
 export async function getAtestadosByPlanilhaItem(planilhaItemId: string): Promise<AtestadoDoPlanilhaItem[]> {
@@ -62,11 +65,11 @@ export async function getAtestadosByPlanilhaItem(planilhaItemId: string): Promis
   if (cleanup.deleted) return [];
   const { data, error } = await supabase
     .from("servicos_extraidos")
-    .select("quantidade_sugerida, unidade_sugerida, atestados!inner(id, numero, contratante, created_at)")
+    .select("quantidade_sugerida, unidade_sugerida, atestados!inner(id, numero, contratante, created_at, is_consorcio, nome_consorcio, percentual_participacao)")
     .eq("planilha_item_id", planilhaItemId)
     .eq("status", "confirmado");
   if (error) throw error;
-  type Row = { quantidade_sugerida: number | string | null; unidade_sugerida: string | null; atestados: { id: string; numero: string; contratante: string; created_at: string } };
+  type Row = { quantidade_sugerida: number | string | null; unidade_sugerida: string | null; atestados: { id: string; numero: string; contratante: string; created_at: string; is_consorcio: boolean | null; nome_consorcio: string | null; percentual_participacao: number | string | null } };
   const rows = (data ?? []) as unknown as Row[];
   return rows
     .slice()
@@ -77,6 +80,9 @@ export async function getAtestadosByPlanilhaItem(planilhaItemId: string): Promis
       contratante: r.atestados.contratante,
       quantidade: num(r.quantidade_sugerida),
       unidade: r.unidade_sugerida ?? "",
+      isConsorcio: r.atestados.is_consorcio ?? false,
+      nomeConsorcio: r.atestados.nome_consorcio ?? undefined,
+      percentualParticipacao: r.atestados.percentual_participacao != null ? num(r.atestados.percentual_participacao) : undefined,
     }));
 }
 
