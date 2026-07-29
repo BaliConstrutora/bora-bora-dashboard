@@ -294,7 +294,9 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
   onUpdate: (id: string, field: keyof ServicoExtraido, value: string | number) => void;
   categorias: string[];
   isManual?: boolean;
+  consorcio?: { pct: number; rawQtd?: number };
 }) {
+  const consorcio = arguments[0].consorcio as { pct: number; rawQtd?: number } | undefined;
   const isPendente = servico.status === "pendente";
   const isConfirmado = servico.status === "confirmado";
   const isIgnorado = servico.status === "ignorado";
