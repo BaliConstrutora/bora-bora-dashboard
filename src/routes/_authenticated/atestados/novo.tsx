@@ -311,6 +311,11 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Extraído do atestado</p>
             <p className="text-sm font-medium">{servico.descricaoOriginal}</p>
             <p className="text-xs text-muted-foreground">Quantidade: {originalRaw || "—"}</p>
+            {consorcio && consorcio.rawQtd != null && (
+              <p className="text-[11px] text-amber-700">
+                Quantidade original: {consorcio.rawQtd.toLocaleString("pt-BR")} {servico.unidadeSugerida ?? ""} → Participação Bali ({consorcio.pct.toLocaleString("pt-BR")}%): {(servico.quantidadeSugerida ?? 0).toLocaleString("pt-BR")} {servico.unidadeSugerida ?? ""}
+              </p>
+            )}
           </div>
           <div className="text-muted-foreground text-lg hidden md:block">→</div>
           <div className="space-y-2">
