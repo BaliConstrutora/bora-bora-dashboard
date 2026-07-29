@@ -11,6 +11,10 @@ type AtestadoRow = {
   numero_pregao: string | null; local_execucao: string | null;
   registro_crea_rt: string | null; finalidade: FinalidadeAtestado | null;
   ordem: number | null;
+  is_consorcio: boolean | null;
+  nome_consorcio: string | null;
+  percentual_participacao: number | string | null;
+  empresas_parceiras: string[] | null;
   created_at: string; updated_at: string;
 };
 
@@ -51,6 +55,9 @@ export type AtestadoDoPlanilhaItem = {
   contratante: string;
   quantidade: number;
   unidade: string;
+  isConsorcio?: boolean;
+  nomeConsorcio?: string;
+  percentualParticipacao?: number;
 };
 
 export async function getAtestadosByPlanilhaItem(planilhaItemId: string): Promise<AtestadoDoPlanilhaItem[]> {
@@ -58,11 +65,11 @@ export async function getAtestadosByPlanilhaItem(planilhaItemId: string): Promis
   if (cleanup.deleted) return [];
   const { data, error } = await supabase
     .from("servicos_extraidos")
-    .select("quantidade_sugerida, unidade_sugerida, atestados!inner(id, numero, contratante, created_at)")
+    .select("quantidade_sugerida, unidade_sugerida, atestados!inner(id, numero, contratante, created_at, is_consorcio, nome_consorcio, percentual_participacao)")
     .eq("planilha_item_id", planilhaItemId)
     .eq("status", "confirmado");
   if (error) throw error;
-  type Row = { quantidade_sugerida: number | string | null; unidade_sugerida: string | null; atestados: { id: string; numero: string; contratante: string; created_at: string } };
+  type Row = { quantidade_sugerida: number | string | null; unidade_sugerida: string | null; atestados: { id: string; numero: string; contratante: string; created_at: string; is_consorcio: boolean | null; nome_consorcio: string | null; percentual_participacao: number | string | null } };
   const rows = (data ?? []) as unknown as Row[];
   return rows
     .slice()
@@ -73,6 +80,9 @@ export async function getAtestadosByPlanilhaItem(planilhaItemId: string): Promis
       contratante: r.atestados.contratante,
       quantidade: num(r.quantidade_sugerida),
       unidade: r.unidade_sugerida ?? "",
+      isConsorcio: r.atestados.is_consorcio ?? false,
+      nomeConsorcio: r.atestados.nome_consorcio ?? undefined,
+      percentualParticipacao: r.atestados.percentual_participacao != null ? num(r.atestados.percentual_participacao) : undefined,
     }));
 }
 
@@ -176,6 +186,10 @@ function mapAtestado(r: AtestadoRow, aditivos: Aditivo[] = [], servicos: Servico
     registroCreaRt: r.registro_crea_rt ?? undefined,
     finalidade: r.finalidade ?? undefined,
     ordem: r.ordem ?? null,
+    isConsorcio: r.is_consorcio ?? false,
+    nomeConsorcio: r.nome_consorcio ?? undefined,
+    percentualParticipacao: r.percentual_participacao != null ? num(r.percentual_participacao) : undefined,
+    empresasParceiras: r.empresas_parceiras ?? undefined,
     aditivos, servicos,
     createdAt: r.created_at, updatedAt: r.updated_at,
   };
@@ -253,6 +267,10 @@ export interface UpdateAtestadoPatch {
   status?: AtestadoStatus;
   descricao?: string;
   observacoes?: string;
+  isConsorcio?: boolean;
+  nomeConsorcio?: string | null;
+  percentualParticipacao?: number | null;
+  empresasParceiras?: string[] | null;
 }
 
 type AtestadoUpdate = Partial<AtestadoRow>;
@@ -280,6 +298,10 @@ export async function updateAtestado(id: string, patch: UpdateAtestadoPatch): Pr
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.descricao !== undefined) row.descricao = patch.descricao;
   if (patch.observacoes !== undefined) row.observacoes = patch.observacoes || null;
+  if (patch.isConsorcio !== undefined) row.is_consorcio = patch.isConsorcio;
+  if (patch.nomeConsorcio !== undefined) row.nome_consorcio = patch.nomeConsorcio || null;
+  if (patch.percentualParticipacao !== undefined) row.percentual_participacao = patch.percentualParticipacao;
+  if (patch.empresasParceiras !== undefined) row.empresas_parceiras = patch.empresasParceiras;
   const { error } = await supabase.from("atestados").update(row as never).eq("id", id);
   if (error) throw error;
 }
@@ -337,6 +359,10 @@ export interface NewAtestadoPayload {
     tipo_contratante: TipoContratante | null; numero_contrato: string | null;
     numero_pregao: string | null; local_execucao: string | null;
     registro_crea_rt: string | null; finalidade: FinalidadeAtestado | null;
+    is_consorcio?: boolean;
+    nome_consorcio?: string | null;
+    percentual_participacao?: number | null;
+    empresas_parceiras?: string[] | null;
   };
   aditivos: Array<{
     user_id: string; numero: number; tipo: AditivoTipo;

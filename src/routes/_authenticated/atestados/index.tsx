@@ -264,7 +264,16 @@ function AtestadosListPage() {
                             {displayNumero}
                           </Link>
                         </TableCell>
-                        <TableCell>{a.contratante}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span>{a.contratante}</span>
+                            {a.isConsorcio && (
+                              <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">
+                                Consórcio {a.percentualParticipacao != null ? `${a.percentualParticipacao.toLocaleString("pt-BR")}%` : ""}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{fmtBRL(a.valorContrato)}</TableCell>
                         <TableCell>{fmtDate(a.dataInicio)} – {fmtDate(a.dataFim)}</TableCell>
                         <TableCell><Badge variant={sc.variant} className={sc.className}>{sc.label}</Badge></TableCell>

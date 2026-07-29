@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido, PlanilhaItem } from "@/types";
@@ -285,7 +286,7 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias, isManual }: {
+function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias, isManual, consorcio }: {
   servico: ServicoExtraido;
   match?: MatchInfo | null;
   onConfirm: (id: string) => void;
@@ -293,10 +294,12 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
   onUpdate: (id: string, field: keyof ServicoExtraido, value: string | number) => void;
   categorias: string[];
   isManual?: boolean;
+  consorcio?: { pct: number; rawQtd?: number };
 }) {
   const isPendente = servico.status === "pendente";
   const isConfirmado = servico.status === "confirmado";
   const isIgnorado = servico.status === "ignorado";
+  const originalRaw = servico.quantidadeOriginal ?? "";
   return (
     <Card
       className={cn(isConfirmado && "border-green-300 bg-green-50/40", isIgnorado && "opacity-60")}
@@ -307,7 +310,12 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
           <div className="space-y-1">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Extraído do atestado</p>
             <p className="text-sm font-medium">{servico.descricaoOriginal}</p>
-            <p className="text-xs text-muted-foreground">Quantidade: {servico.quantidadeOriginal}</p>
+            <p className="text-xs text-muted-foreground">Quantidade: {originalRaw || "—"}</p>
+            {consorcio && consorcio.rawQtd != null && (
+              <p className="text-[11px] text-amber-700">
+                Quantidade original: {consorcio.rawQtd.toLocaleString("pt-BR")} {servico.unidadeSugerida ?? ""} → Participação Bali ({consorcio.pct.toLocaleString("pt-BR")}%): {(servico.quantidadeSugerida ?? 0).toLocaleString("pt-BR")} {servico.unidadeSugerida ?? ""}
+              </p>
+            )}
           </div>
           <div className="text-muted-foreground text-lg hidden md:block">→</div>
           <div className="space-y-2">
@@ -401,7 +409,13 @@ function NovoAtestadoPage() {
   const [servicos, setServicos] = useState<ServicoExtraido[]>([]);
   const [matchMap, setMatchMap] = useState<Record<string, MatchInfo | null>>({});
   const [manuaisIds, setManuaisIds] = useState<Set<string>>(new Set());
+  const [rawQtdMap, setRawQtdMap] = useState<Record<string, number>>({});
   const [showManualForm, setShowManualForm] = useState(false);
+  const [isConsorcio, setIsConsorcio] = useState(false);
+  const [nomeConsorcio, setNomeConsorcio] = useState("");
+  const [percentualParticipacao, setPercentualParticipacao] = useState<string>("");
+  const [empresasParceiras, setEmpresasParceiras] = useState<string[]>([]);
+  const [empresaInput, setEmpresaInput] = useState("");
   const [manualForm, setManualForm] = useState<{ codigo: string; descricao: string; quantidade: string; unidade: string; categoria: string }>({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" });
   const [progress, setProgress] = useState<{ upload: "done" | "active" | "pending"; extract: "done" | "active" | "pending"; identify: "done" | "active" | "pending"; correlate: "done" | "active" | "pending" }>({ upload: "pending", extract: "pending", identify: "pending", correlate: "pending" });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -475,6 +489,9 @@ function NovoAtestadoPage() {
       setProgress((p) => ({ ...p, identify: "done", correlate: "active" }));
 
       const planilha = await listPlanilhaItems().catch(() => []);
+      const pctNum = Number(percentualParticipacao);
+      const factor = isConsorcio && Number.isFinite(pctNum) && pctNum > 0 ? pctNum / 100 : 1;
+      const nextRawMap: Record<string, number> = {};
       const svcs: ServicoExtraido[] = (ext.servicos ?? []).map((s, i) => {
         const codigo = trimOrUndef(s.codigo_sugerido);
         const desc = trimOrUndef(s.descricao_sugerida);
@@ -482,19 +499,23 @@ function NovoAtestadoPage() {
         const quantidade = normalizeQuantidade(s.quantidade_sugerida);
         const categoria = normalizeCategoria(s.categoria_sugerida);
         const match = planilha.find((p) => (codigo && p.codigo === codigo) || (desc && canon(p.descricao) === canon(desc)));
+        const id = crypto.randomUUID();
+        const adjustedQty = quantidade != null ? Math.round(quantidade * factor * 100) / 100 : undefined;
+        if (quantidade != null) nextRawMap[id] = quantidade;
         return {
-          id: crypto.randomUUID(),
+          id,
           descricaoOriginal: desc ?? `Serviço ${i + 1}`,
           quantidadeOriginal: quantidade != null ? `${quantidade} ${unidade ?? ""}`.trim() : "",
           codigoSugerido: codigo,
           descricaoSugerida: desc,
           unidadeSugerida: unidade,
-          quantidadeSugerida: quantidade,
+          quantidadeSugerida: adjustedQty,
           categoriaSugerida: categoria,
           planilhaItemId: match?.id,
           status: "pendente" as const,
         };
       });
+      setRawQtdMap(nextRawMap);
       const nextMatchMap: Record<string, MatchInfo | null> = {};
       for (const s of svcs) {
         const best = findBestMatch(s, planilha);
@@ -518,7 +539,15 @@ function NovoAtestadoPage() {
     }
   }
 
-  function handleProcessar() { void runExtraction(); }
+  function handleProcessar() {
+    if (isConsorcio) {
+      const pct = Number(percentualParticipacao);
+      if (!nomeConsorcio.trim()) { toast.error("Informe o nome do consórcio."); return; }
+      if (!Number.isFinite(pct) || pct <= 0 || pct > 100) { toast.error("Informe a participação da Bali (0-100%)."); return; }
+      if (empresasParceiras.length < 1) { toast.error("Adicione pelo menos uma empresa parceira."); return; }
+    }
+    void runExtraction();
+  }
   async function handleConfirm(id: string) {
     const servico = servicos.find((s) => s.id === id);
     if (!servico) return;
@@ -543,18 +572,24 @@ function NovoAtestadoPage() {
 
   function handleAddManual() {
     const desc = manualForm.descricao.trim();
+    const codigo = manualForm.codigo.trim();
     const qtd = Number(manualForm.quantidade);
+    if (!codigo) { toast.error("Informe o código do serviço."); return; }
     if (!desc) { toast.error("Informe a descrição do serviço."); return; }
     if (!Number.isFinite(qtd) || qtd <= 0) { toast.error("Informe uma quantidade válida."); return; }
     const id = crypto.randomUUID();
+    const pctNum = Number(percentualParticipacao);
+    const factor = isConsorcio && Number.isFinite(pctNum) && pctNum > 0 ? pctNum / 100 : 1;
+    const adjustedQty = Math.round(qtd * factor * 100) / 100;
+    if (isConsorcio) setRawQtdMap((prev) => ({ ...prev, [id]: qtd }));
     const novo: ServicoExtraido = {
       id,
       descricaoOriginal: desc,
       quantidadeOriginal: `${qtd} ${manualForm.unidade}`.trim(),
-      codigoSugerido: manualForm.codigo.trim() || undefined,
+      codigoSugerido: codigo,
       descricaoSugerida: desc,
       unidadeSugerida: manualForm.unidade,
-      quantidadeSugerida: qtd,
+      quantidadeSugerida: adjustedQty,
       categoriaSugerida: manualForm.categoria,
       status: "pendente",
     };
@@ -591,6 +626,10 @@ function NovoAtestadoPage() {
           local_execucao: v.localExecucao || null,
           registro_crea_rt: v.registroCreaRt || null,
           finalidade: v.finalidade ?? null,
+          is_consorcio: isConsorcio,
+          nome_consorcio: isConsorcio ? (nomeConsorcio || null) : null,
+          percentual_participacao: isConsorcio && percentualParticipacao ? Number(percentualParticipacao) : null,
+          empresas_parceiras: isConsorcio ? empresasParceiras : null,
         },
         aditivos: aditivos.map((a) => ({
           user_id: uid, numero: a.numero, tipo: a.tipo,
@@ -700,6 +739,79 @@ function NovoAtestadoPage() {
                   <div className="sm:col-span-2"><FormField control={form.control} name="descricao" render={({ field }) => (<FormItem><FormLabel>Descrição Geral *</FormLabel><FormControl><Textarea placeholder="Descreva as atividades executadas..." className="min-h-[80px]" {...field} /></FormControl><FormMessage /></FormItem>)} /></div>
                   <div className="sm:col-span-2"><FormField control={form.control} name="observacoes" render={({ field }) => (<FormItem><FormLabel>Observações</FormLabel><FormControl><Textarea placeholder="Informações adicionais (opcional)..." className="min-h-[60px]" {...field} /></FormControl><FormMessage /></FormItem>)} /></div>
                 </div>
+                <Separator className="my-4" />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">Este atestado é de um Consórcio</p>
+                      <p className="text-xs text-muted-foreground">Ative para registrar a participação da Bali e as empresas parceiras.</p>
+                    </div>
+                    <Switch checked={isConsorcio} onCheckedChange={setIsConsorcio} />
+                  </div>
+                  <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-hidden transition-all duration-300", isConsorcio ? "opacity-100 max-h-[1000px]" : "opacity-0 max-h-0 pointer-events-none")}>
+                    <div className="sm:col-span-2">
+                      <label className="text-sm font-medium">Nome do Consórcio *</label>
+                      <Input className="mt-1" placeholder="Ex: Consórcio Pró Transporte Contagem" value={nomeConsorcio} onChange={(e) => setNomeConsorcio(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Participação da Bali (%) *</label>
+                      <Input className="mt-1" type="number" step="0.01" min={0} max={100} placeholder="Ex: 24,5" value={percentualParticipacao} onChange={(e) => setPercentualParticipacao(e.target.value)} />
+                      <p className="text-xs text-muted-foreground mt-1">Os quantitativos serão multiplicados por este percentual</p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-sm font-medium">Empresas Parceiras</label>
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          placeholder="Nome da empresa"
+                          value={empresaInput}
+                          onChange={(e) => setEmpresaInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const v = empresaInput.trim();
+                              if (!v) return;
+                              if (empresasParceiras.includes(v)) { toast.info("Empresa já adicionada."); return; }
+                              setEmpresasParceiras((prev) => [...prev, v]);
+                              setEmpresaInput("");
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            const v = empresaInput.trim();
+                            if (!v) return;
+                            if (empresasParceiras.includes(v)) { toast.info("Empresa já adicionada."); return; }
+                            setEmpresasParceiras((prev) => [...prev, v]);
+                            setEmpresaInput("");
+                          }}
+                        >
+                          Adicionar
+                        </Button>
+                      </div>
+                      {empresasParceiras.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {empresasParceiras.map((e) => (
+                            <Badge key={e} variant="outline" className="border-amber-300 text-amber-700 bg-amber-50 gap-1">
+                              {e}
+                              <button
+                                type="button"
+                                className="text-amber-700 hover:text-red-600"
+                                onClick={() => setEmpresasParceiras((prev) => prev.filter((x) => x !== e))}
+                                aria-label={`Remover ${e}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-1">Adicione ao menos uma empresa parceira.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </Form>
@@ -775,12 +887,31 @@ function NovoAtestadoPage() {
       )}
       {step === 3 && (
         <div className="space-y-4">
+          {isConsorcio && percentualParticipacao && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
+              <span className="text-amber-700 text-sm">
+                ⚠️ Consórcio: {nomeConsorcio} — Participação Bali: {Number(percentualParticipacao).toLocaleString("pt-BR")}%. Os quantitativos foram ajustados proporcionalmente.
+              </span>
+            </div>
+          )}
           <div className="flex items-start justify-between gap-4">
             <div><h2 className="text-base font-semibold">{servicos.length} serviços extraídos — {formValues.numeroCat || "Atestado"} · {formValues.contratante || ""}</h2><p className="text-sm text-muted-foreground mt-0.5">Revise, edite e confirme cada item para a Planilha de Quantidades</p></div>
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
           <div className="space-y-3">
-            {servicos.map((servico) => (<ServiceCard key={servico.id} servico={servico} match={matchMap[servico.id]} onConfirm={handleConfirm} onIgnore={handleIgnore} onUpdate={handleUpdate} categorias={todasCategorias} isManual={manuaisIds.has(servico.id)} />))}
+            {servicos.map((servico) => (
+              <ServiceCard
+                key={servico.id}
+                servico={servico}
+                match={matchMap[servico.id]}
+                onConfirm={handleConfirm}
+                onIgnore={handleIgnore}
+                onUpdate={handleUpdate}
+                categorias={todasCategorias}
+                isManual={manuaisIds.has(servico.id)}
+                consorcio={isConsorcio && Number(percentualParticipacao) > 0 ? { pct: Number(percentualParticipacao), rawQtd: rawQtdMap[servico.id] } : undefined}
+              />
+            ))}
           </div>
           {!showManualForm ? (
             <div className="flex justify-center pt-2">

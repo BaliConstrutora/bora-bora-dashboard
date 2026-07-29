@@ -87,15 +87,19 @@ export type Database = {
           data_inicio: string
           descricao: string
           documento_url: string | null
+          empresas_parceiras: string[] | null
           finalidade: string | null
           id: string
+          is_consorcio: boolean
           local_execucao: string | null
+          nome_consorcio: string | null
           numero: string
           numero_cat: string | null
           numero_contrato: string | null
           numero_pregao: string | null
           observacoes: string | null
           ordem: number | null
+          percentual_participacao: number | null
           registro_crea_rt: string | null
           resp_tecnico: string
           status: string
@@ -114,15 +118,19 @@ export type Database = {
           data_inicio: string
           descricao?: string
           documento_url?: string | null
+          empresas_parceiras?: string[] | null
           finalidade?: string | null
           id?: string
+          is_consorcio?: boolean
           local_execucao?: string | null
+          nome_consorcio?: string | null
           numero: string
           numero_cat?: string | null
           numero_contrato?: string | null
           numero_pregao?: string | null
           observacoes?: string | null
           ordem?: number | null
+          percentual_participacao?: number | null
           registro_crea_rt?: string | null
           resp_tecnico?: string
           status?: string
@@ -141,15 +149,19 @@ export type Database = {
           data_inicio?: string
           descricao?: string
           documento_url?: string | null
+          empresas_parceiras?: string[] | null
           finalidade?: string | null
           id?: string
+          is_consorcio?: boolean
           local_execucao?: string | null
+          nome_consorcio?: string | null
           numero?: string
           numero_cat?: string | null
           numero_contrato?: string | null
           numero_pregao?: string | null
           observacoes?: string | null
           ordem?: number | null
+          percentual_participacao?: number | null
           registro_crea_rt?: string | null
           resp_tecnico?: string
           status?: string

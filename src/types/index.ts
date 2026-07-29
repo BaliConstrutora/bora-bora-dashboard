@@ -113,6 +113,10 @@ export interface Atestado {
   registroCreaRt?: string;
   finalidade?: FinalidadeAtestado;
   ordem?: number | null;
+  isConsorcio?: boolean;
+  nomeConsorcio?: string;
+  percentualParticipacao?: number;
+  empresasParceiras?: string[];
   createdAt: string;
   updatedAt: string;
 }
