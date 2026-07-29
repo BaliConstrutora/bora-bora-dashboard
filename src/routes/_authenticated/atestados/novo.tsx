@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { CATEGORIAS_PADRAO, UNIDADES } from "@/data/mock";
 import type { Aditivo, AditivoTipo, ServicoExtraido, PlanilhaItem } from "@/types";
@@ -297,6 +298,7 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
   const isPendente = servico.status === "pendente";
   const isConfirmado = servico.status === "confirmado";
   const isIgnorado = servico.status === "ignorado";
+  const originalRaw = servico.quantidadeOriginal ?? "";
   return (
     <Card
       className={cn(isConfirmado && "border-green-300 bg-green-50/40", isIgnorado && "opacity-60")}
@@ -307,7 +309,7 @@ function ServiceCard({ servico, match, onConfirm, onIgnore, onUpdate, categorias
           <div className="space-y-1">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Extraído do atestado</p>
             <p className="text-sm font-medium">{servico.descricaoOriginal}</p>
-            <p className="text-xs text-muted-foreground">Quantidade: {servico.quantidadeOriginal}</p>
+            <p className="text-xs text-muted-foreground">Quantidade: {originalRaw || "—"}</p>
           </div>
           <div className="text-muted-foreground text-lg hidden md:block">→</div>
           <div className="space-y-2">
