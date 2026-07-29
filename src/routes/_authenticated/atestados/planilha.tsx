@@ -56,8 +56,20 @@ function AtestadosExpandedList({
             <li key={a.id} className="py-2 flex items-center gap-3">
               <Badge variant="outline" className="text-[10px] font-mono shrink-0">{seqMap.get(a.id) ?? "AT-—"}</Badge>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium truncate">{a.contratante}</p>
+                <p className="text-xs font-medium truncate flex items-center gap-1.5">
+                  {a.contratante}
+                  {a.isConsorcio && (
+                    <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">
+                      Consórcio{a.percentualParticipacao != null ? ` ${a.percentualParticipacao.toLocaleString("pt-BR")}%` : ""}
+                    </Badge>
+                  )}
+                </p>
                 <p className="text-[11px] text-muted-foreground tabular-nums">
+                  {a.isConsorcio && a.nomeConsorcio ? (
+                    <>
+                      {a.nomeConsorcio} ·{" "}
+                    </>
+                  ) : null}
                   Contribuição: <span className="text-foreground font-medium">{a.quantidade.toLocaleString("pt-BR")} {a.unidade}</span>
                 </p>
               </div>
