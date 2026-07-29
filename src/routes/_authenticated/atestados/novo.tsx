@@ -409,7 +409,13 @@ function NovoAtestadoPage() {
   const [servicos, setServicos] = useState<ServicoExtraido[]>([]);
   const [matchMap, setMatchMap] = useState<Record<string, MatchInfo | null>>({});
   const [manuaisIds, setManuaisIds] = useState<Set<string>>(new Set());
+  const [rawQtdMap, setRawQtdMap] = useState<Record<string, number>>({});
   const [showManualForm, setShowManualForm] = useState(false);
+  const [isConsorcio, setIsConsorcio] = useState(false);
+  const [nomeConsorcio, setNomeConsorcio] = useState("");
+  const [percentualParticipacao, setPercentualParticipacao] = useState<string>("");
+  const [empresasParceiras, setEmpresasParceiras] = useState<string[]>([]);
+  const [empresaInput, setEmpresaInput] = useState("");
   const [manualForm, setManualForm] = useState<{ codigo: string; descricao: string; quantidade: string; unidade: string; categoria: string }>({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" });
   const [progress, setProgress] = useState<{ upload: "done" | "active" | "pending"; extract: "done" | "active" | "pending"; identify: "done" | "active" | "pending"; correlate: "done" | "active" | "pending" }>({ upload: "pending", extract: "pending", identify: "pending", correlate: "pending" });
   const fileInputRef = useRef<HTMLInputElement>(null);
