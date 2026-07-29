@@ -115,6 +115,10 @@ type EditForm = {
   status: AtestadoStatus;
   descricao: string;
   observacoes: string;
+  isConsorcio: boolean;
+  nomeConsorcio: string;
+  percentualParticipacao: string;
+  empresasParceiras: string[];
 };
 
 type EditServico = {
@@ -158,6 +162,7 @@ function AtestadoDetailPage() {
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [editServicos, setEditServicos] = useState<EditServico[]>([]);
   const [sendingIds, setSendingIds] = useState<Set<string>>(new Set());
+  const [empresaInputEdit, setEmpresaInputEdit] = useState("");
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -182,6 +187,10 @@ function AtestadoDetailPage() {
         status: editForm.status,
         descricao: editForm.descricao,
         observacoes: editForm.observacoes,
+        isConsorcio: editForm.isConsorcio,
+        nomeConsorcio: editForm.isConsorcio ? (editForm.nomeConsorcio || undefined) : undefined,
+        percentualParticipacao: editForm.isConsorcio && editForm.percentualParticipacao ? Number(editForm.percentualParticipacao) : undefined,
+        empresasParceiras: editForm.isConsorcio ? editForm.empresasParceiras : undefined,
       });
       for (const s of editServicos) {
         const original = atestado?.servicos.find((os) => os.id === s.id);
@@ -266,6 +275,10 @@ function AtestadoDetailPage() {
       status: atestado.status,
       descricao: atestado.descricao,
       observacoes: atestado.observacoes ?? "",
+      isConsorcio: !!atestado.isConsorcio,
+      nomeConsorcio: atestado.nomeConsorcio ?? "",
+      percentualParticipacao: atestado.percentualParticipacao != null ? String(atestado.percentualParticipacao) : "",
+      empresasParceiras: atestado.empresasParceiras ?? [],
     });
     setEditServicos(
       atestado.servicos.map((s) => ({
