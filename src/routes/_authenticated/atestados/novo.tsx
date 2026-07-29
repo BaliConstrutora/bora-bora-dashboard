@@ -531,6 +531,9 @@ function NovoAtestadoPage() {
       if (warnings.length) {
         toast.warning(`${warnings.length} campo(s) precisam de revisão manual`, { description: warnings.join(", ") });
       }
+      if (svcs.length === 0) {
+        setShowManualForm(true);
+      }
       setStep(3);
     } catch (err) {
       console.error(err);
@@ -596,7 +599,6 @@ function NovoAtestadoPage() {
     setServicos((prev) => [...prev, novo]);
     setManuaisIds((prev) => { const next = new Set(prev); next.add(id); return next; });
     setMatchMap((prev) => ({ ...prev, [id]: null }));
-    setShowManualForm(false);
     setManualForm({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" });
     toast.success("Serviço adicionado manualmente.");
   }
@@ -898,6 +900,11 @@ function NovoAtestadoPage() {
             <div><h2 className="text-base font-semibold">{servicos.length} serviços extraídos — {formValues.numeroCat || "Atestado"} · {formValues.contratante || ""}</h2><p className="text-sm text-muted-foreground mt-0.5">Revise, edite e confirme cada item para a Planilha de Quantidades</p></div>
             <div className="flex gap-2 shrink-0"><Badge className="bg-green-600 hover:bg-green-600">{confirmedCount} confirmados</Badge><Badge variant="secondary">{pendingCount} pendentes</Badge></div>
           </div>
+          {servicos.length === 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+              A IA não identificou serviços automaticamente. Adicione manualmente abaixo.
+            </div>
+          )}
           <div className="space-y-3">
             {servicos.map((servico) => (
               <ServiceCard
@@ -954,7 +961,10 @@ function NovoAtestadoPage() {
                 </div>
                 <div className="flex justify-end gap-2 pt-1">
                   <Button variant="outline" size="sm" onClick={() => { setShowManualForm(false); setManualForm({ codigo: "", descricao: "", quantidade: "", unidade: "un", categoria: "Outros" }); }}>Cancelar</Button>
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleAddManual}>Adicionar</Button>
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={handleAddManual}>
+                    <Check className="h-4 w-4 mr-1" />
+                    Salvar Serviço
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -964,6 +974,10 @@ function NovoAtestadoPage() {
             <Button onClick={handleSalvar} disabled={saveMut.isPending}>
               {saveMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
               Salvar Atestado Completo
+            </Button>
+            <Button onClick={handleSalvar} disabled={saveMut.isPending} className="bg-primary">
+              {saveMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+              Concluído — ir para confirmação
             </Button>
           </div>
         </div>
