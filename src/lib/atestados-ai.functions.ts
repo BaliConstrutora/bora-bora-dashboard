@@ -129,7 +129,7 @@ export const extractAtestadoFromPdf = createServerFn({ method: "POST" })
         body: JSON.stringify({
           model: "claude-sonnet-4-5",
           max_tokens: 8192,
-          system: SYSTEM_PROMPT,
+          system: SYSTEM_PROMPT + CONSORCIO_NOTE,
           messages: [
             {
               role: "user",
