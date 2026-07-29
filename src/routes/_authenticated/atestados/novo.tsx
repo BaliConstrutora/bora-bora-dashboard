@@ -572,18 +572,24 @@ function NovoAtestadoPage() {
 
   function handleAddManual() {
     const desc = manualForm.descricao.trim();
+    const codigo = manualForm.codigo.trim();
     const qtd = Number(manualForm.quantidade);
+    if (!codigo) { toast.error("Informe o código do serviço."); return; }
     if (!desc) { toast.error("Informe a descrição do serviço."); return; }
     if (!Number.isFinite(qtd) || qtd <= 0) { toast.error("Informe uma quantidade válida."); return; }
     const id = crypto.randomUUID();
+    const pctNum = Number(percentualParticipacao);
+    const factor = isConsorcio && Number.isFinite(pctNum) && pctNum > 0 ? pctNum / 100 : 1;
+    const adjustedQty = Math.round(qtd * factor * 100) / 100;
+    if (isConsorcio) setRawQtdMap((prev) => ({ ...prev, [id]: qtd }));
     const novo: ServicoExtraido = {
       id,
       descricaoOriginal: desc,
       quantidadeOriginal: `${qtd} ${manualForm.unidade}`.trim(),
-      codigoSugerido: manualForm.codigo.trim() || undefined,
+      codigoSugerido: codigo,
       descricaoSugerida: desc,
       unidadeSugerida: manualForm.unidade,
-      quantidadeSugerida: qtd,
+      quantidadeSugerida: adjustedQty,
       categoriaSugerida: manualForm.categoria,
       status: "pendente",
     };
