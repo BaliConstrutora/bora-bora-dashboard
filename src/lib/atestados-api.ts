@@ -807,3 +807,37 @@ export async function removeAtestadoFromPlanilhaItem(
     if (updErr) throw updErr;
   }
 }
+
+export async function createServico(
+  atestadoId: string,
+  userId: string,
+  data: {
+    codigoSugerido?: string;
+    descricaoSugerida?: string;
+    quantidadeSugerida?: number;
+    unidadeSugerida?: string;
+    categoriaSugerida?: string;
+  }
+): Promise<string> {
+  const { data: row, error } = await supabase
+    .from("servicos_extraidos")
+    .insert({
+      atestado_id: atestadoId,
+      user_id: userId,
+      descricao_original: data.descricaoSugerida ?? "",
+      quantidade_original: data.quantidadeSugerida != null
+        ? `${data.quantidadeSugerida} ${data.unidadeSugerida ?? ""}`
+        : "",
+      codigo_sugerido: data.codigoSugerido ?? null,
+      descricao_sugerida: data.descricaoSugerida ?? null,
+      quantidade_sugerida: data.quantidadeSugerida ?? null,
+      unidade_sugerida: data.unidadeSugerida ?? null,
+      categoria_sugerida: data.categoriaSugerida ?? null,
+      status: "pendente",
+    })
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return row.id;
+}

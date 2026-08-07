@@ -10,6 +10,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+function AuthPending() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
@@ -18,6 +26,7 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Acesse a plataforma de gestão comercial da Construtora Bali." },
     ],
   }),
+  pendingComponent: AuthPending,
   component: AuthPage,
 });
 
