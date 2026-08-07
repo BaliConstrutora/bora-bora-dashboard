@@ -728,7 +728,7 @@ function AtestadoDetailPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {atestado.servicos.length === 0 ? (
+              {atestado.servicos.length === 0 && !isEditing ? (
                 <p className="p-6 text-sm text-muted-foreground">Nenhum serviço registrado.</p>
               ) : isEditing ? (
                 <div className="overflow-x-auto">
