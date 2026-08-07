@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, Pencil, Check, X, Loader2, Send, AlertCircle } from "lucide-react";
+import { ArrowLeft, FileText, Pencil, Check, X, Loader2, Send, AlertCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAtestadoById,
@@ -12,6 +12,7 @@ import {
   listCategoriasPersonalizadas,
   getCurrentUserId,
   listPlanilhaItems,
+  createServico,
 } from "@/lib/atestados-api";
 import { PdfViewerDialog } from "@/components/pdf-viewer-dialog";
 import { Button } from "@/components/ui/button";
@@ -163,6 +164,15 @@ function AtestadoDetailPage() {
   const [editServicos, setEditServicos] = useState<EditServico[]>([]);
   const [sendingIds, setSendingIds] = useState<Set<string>>(new Set());
   const [empresaInputEdit, setEmpresaInputEdit] = useState("");
+  const [showNovoServico, setShowNovoServico] = useState(false);
+  const [novoServico, setNovoServico] = useState({
+    codigo: "",
+    descricao: "",
+    quantidade: "",
+    unidade: "m",
+    categoria: "Outros",
+  });
+  const [savingNovoServico, setSavingNovoServico] = useState(false);
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -251,6 +261,51 @@ function AtestadoDetailPage() {
         next.delete(s.id);
         return next;
       });
+    }
+  }
+
+  async function handleSalvarNovoServico() {
+    const qty = Number(novoServico.quantidade);
+    if (!novoServico.codigo) {
+      toast.error("Informe o código.");
+      return;
+    }
+    if (!novoServico.descricao) {
+      toast.error("Informe a descrição.");
+      return;
+    }
+    if (!Number.isFinite(qty) || qty <= 0) {
+      toast.error("Informe uma quantidade válida.");
+      return;
+    }
+    setSavingNovoServico(true);
+    try {
+      const userId = await getCurrentUserId();
+      const servicoId = await createServico(atestadoId, userId, {
+        codigoSugerido: novoServico.codigo,
+        descricaoSugerida: novoServico.descricao,
+        quantidadeSugerida: qty,
+        unidadeSugerida: novoServico.unidade,
+        categoriaSugerida: novoServico.categoria,
+      });
+      await sendServicoToPlanilha(userId, servicoId, {
+        codigo: novoServico.codigo,
+        categoria: novoServico.categoria,
+        descricao: novoServico.descricao,
+        quantidade: qty,
+        unidade: novoServico.unidade,
+      });
+      queryClient.invalidateQueries({ queryKey: ["atestado", atestadoId] });
+      queryClient.invalidateQueries({ queryKey: ["planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-personalizadas"] });
+      toast.success("Serviço adicionado e enviado para a Planilha!");
+      setNovoServico({ codigo: "", descricao: "", quantidade: "", unidade: "m", categoria: "Outros" });
+      setShowNovoServico(false);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingNovoServico(false);
     }
   }
 
@@ -719,6 +774,102 @@ function AtestadoDetailPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  {!showNovoServico ? (
+                    <div className="p-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-primary text-primary hover:bg-primary hover:text-white"
+                        onClick={() => setShowNovoServico(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Serviço
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="p-4 border-t bg-muted/20 space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Plus className="h-4 w-4 text-primary" />
+                        Novo Serviço
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">Código *</label>
+                          <Input
+                            value={novoServico.codigo}
+                            onChange={(e) => setNovoServico((p) => ({ ...p, codigo: e.target.value }))}
+                            placeholder="Ex: 1.1"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">Quantidade *</label>
+                          <Input
+                            type="number"
+                            value={novoServico.quantidade}
+                            onChange={(e) => setNovoServico((p) => ({ ...p, quantidade: e.target.value }))}
+                            placeholder="0,00"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">Unidade</label>
+                          <Select
+                            value={novoServico.unidade}
+                            onValueChange={(v) => setNovoServico((p) => ({ ...p, unidade: v }))}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {UNIDADES.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1 sm:col-span-2 lg:col-span-2">
+                          <label className="text-xs text-muted-foreground">Descrição *</label>
+                          <Input
+                            value={novoServico.descricao}
+                            onChange={(e) => setNovoServico((p) => ({ ...p, descricao: e.target.value }))}
+                            placeholder="Descrição do serviço"
+                          />
+                        </div>
+                        <div className="space-y-1 sm:col-span-2 lg:col-span-5">
+                          <label className="text-xs text-muted-foreground">Categoria</label>
+                          <Select
+                            value={novoServico.categoria}
+                            onValueChange={(v) => setNovoServico((p) => ({ ...p, categoria: v }))}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {todasCategorias.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setShowNovoServico(false);
+                            setNovoServico({ codigo: "", descricao: "", quantidade: "", unidade: "m", categoria: "Outros" });
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={handleSalvarNovoServico}
+                          disabled={savingNovoServico}
+                        >
+                          {savingNovoServico ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4 mr-2" />
+                          )}
+                          Salvar e Enviar para Planilha
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
