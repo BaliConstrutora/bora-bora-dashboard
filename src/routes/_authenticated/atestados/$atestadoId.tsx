@@ -164,6 +164,15 @@ function AtestadoDetailPage() {
   const [editServicos, setEditServicos] = useState<EditServico[]>([]);
   const [sendingIds, setSendingIds] = useState<Set<string>>(new Set());
   const [empresaInputEdit, setEmpresaInputEdit] = useState("");
+  const [showNovoServico, setShowNovoServico] = useState(false);
+  const [novoServico, setNovoServico] = useState({
+    codigo: "",
+    descricao: "",
+    quantidade: "",
+    unidade: "m",
+    categoria: "Outros",
+  });
+  const [savingNovoServico, setSavingNovoServico] = useState(false);
 
   const saveMut = useMutation({
     mutationFn: async () => {
