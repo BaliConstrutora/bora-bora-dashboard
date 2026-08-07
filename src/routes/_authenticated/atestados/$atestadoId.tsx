@@ -264,6 +264,51 @@ function AtestadoDetailPage() {
     }
   }
 
+  async function handleSalvarNovoServico() {
+    const qty = Number(novoServico.quantidade);
+    if (!novoServico.codigo) {
+      toast.error("Informe o código.");
+      return;
+    }
+    if (!novoServico.descricao) {
+      toast.error("Informe a descrição.");
+      return;
+    }
+    if (!Number.isFinite(qty) || qty <= 0) {
+      toast.error("Informe uma quantidade válida.");
+      return;
+    }
+    setSavingNovoServico(true);
+    try {
+      const userId = await getCurrentUserId();
+      const servicoId = await createServico(atestadoId, userId, {
+        codigoSugerido: novoServico.codigo,
+        descricaoSugerida: novoServico.descricao,
+        quantidadeSugerida: qty,
+        unidadeSugerida: novoServico.unidade,
+        categoriaSugerida: novoServico.categoria,
+      });
+      await sendServicoToPlanilha(userId, servicoId, {
+        codigo: novoServico.codigo,
+        categoria: novoServico.categoria,
+        descricao: novoServico.descricao,
+        quantidade: qty,
+        unidade: novoServico.unidade,
+      });
+      queryClient.invalidateQueries({ queryKey: ["atestado", atestadoId] });
+      queryClient.invalidateQueries({ queryKey: ["planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-planilha"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias-personalizadas"] });
+      toast.success("Serviço adicionado e enviado para a Planilha!");
+      setNovoServico({ codigo: "", descricao: "", quantidade: "", unidade: "m", categoria: "Outros" });
+      setShowNovoServico(false);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingNovoServico(false);
+    }
+  }
+
   function handleEditar() {
     if (!atestado) return;
     setEditForm({
