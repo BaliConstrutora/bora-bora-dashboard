@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FileText, Pencil, Check, X, Loader2, Send, AlertCircle } from "lucide-react";
+import { ArrowLeft, FileText, Pencil, Check, X, Loader2, Send, AlertCircle, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAtestadoById,
@@ -12,6 +12,7 @@ import {
   listCategoriasPersonalizadas,
   getCurrentUserId,
   listPlanilhaItems,
+  createServico,
 } from "@/lib/atestados-api";
 import { PdfViewerDialog } from "@/components/pdf-viewer-dialog";
 import { Button } from "@/components/ui/button";
